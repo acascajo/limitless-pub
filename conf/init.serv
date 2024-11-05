@@ -1,0 +1,24 @@
+# INIT FILE FOR SERVER
+# PARAMS:
+# port
+# ElasticSearch address
+# backup ip for server (alternative 1)
+# backup ip for server (alternative 2)
+# TMR mode (0 simple, 1 triple redundancy)
+# Recovery mode (0 disable, 1 enable)
+5000
+127.0.0.1
+-1
+-1
+0
+0
+# THE AGGREGATOR ROLE HAVE TO BE DECLARED IN INIT.SERV
+# THIS FUNCTION WON'T BE AFFECTED BY CHANGES IN CONF.SERV
+# THE AGGREGATOR AND SERVER ROLES ARE EXCLUSIVE
+#
+# Master port (if aggregator mode is selected)
+# Master server (if aggregator mode is selected)
+# Aggregator mode (0 disable, 1 enable)
+-1
+-1
+0

@@ -1,0 +1,247 @@
+\hypertarget{classPacked__sample}{}\section{Packed\+\_\+sample Class Reference}
+\label{classPacked__sample}\index{Packed\+\_\+sample@{Packed\+\_\+sample}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classPacked__sample_abdd5b40c20de0f358d0edce96b69fd20}\label{classPacked__sample_abdd5b40c20de0f358d0edce96b69fd20}} 
+{\bfseries Packed\+\_\+sample} (\mbox{\hyperlink{structhw__conf}{Hw\+\_\+conf}} hwconf, unsigned int interval, int n\+\_\+samples, int threshold)
+\item 
+\mbox{\Hypertarget{classPacked__sample_a32c76166f873f799f15bbfeb607dd974}\label{classPacked__sample_a32c76166f873f799f15bbfeb607dd974}} 
+void {\bfseries set\+\_\+n\+\_\+samples} (int n\+\_\+samples)
+\item 
+\mbox{\Hypertarget{classPacked__sample_a6e50ad3c0460ccd0694f28910e46037b}\label{classPacked__sample_a6e50ad3c0460ccd0694f28910e46037b}} 
+void {\bfseries set\+\_\+n\+\_\+devices\+\_\+io} (int n\+\_\+devices\+\_\+io)
+\item 
+\mbox{\Hypertarget{classPacked__sample_ad738de22eacf4de34a9423585421f24e}\label{classPacked__sample_ad738de22eacf4de34a9423585421f24e}} 
+void {\bfseries set\+\_\+n\+\_\+interfaces} (int n\+\_\+interfaces)
+\item 
+\mbox{\Hypertarget{classPacked__sample_a2dccf6ec9f3175bed7aac496e81de757}\label{classPacked__sample_a2dccf6ec9f3175bed7aac496e81de757}} 
+void {\bfseries pack\+\_\+features} ()
+\item 
+void \mbox{\hyperlink{classPacked__sample_acc6f96c07fc1df249ae439b7644deeeb}{pack\+\_\+monitoring}} (int mem\+\_\+usa, int cpu\+\_\+usa, int $\ast$devices\+\_\+usa\mbox{[}2\mbox{]}, int $\ast$net\+\_\+usa, int $\ast$temp)
+\item 
+void \mbox{\hyperlink{classPacked__sample_a4649ca58fb22958ffbae97337bc33576}{pack\+\_\+sample\+\_\+s}} (std\+::string sample)
+\item 
+vector$<$ string $>$ \mbox{\hyperlink{classPacked__sample_a89c91c30951a092a804e1f371b226060}{split\+\_\+log}} (std\+::string str)
+\item 
+vector$<$ string $>$ \mbox{\hyperlink{classPacked__sample_a66e88d8826169e056dc88b9654ce70f8}{parse\+\_\+log}} (std\+::string sample)
+\item 
+void \mbox{\hyperlink{classPacked__sample_a3f941028cbd26a98a99cd3c000b08666}{calculate\+\_\+sample\+\_\+size}} ()
+\item 
+int \mbox{\hyperlink{classPacked__sample_a09d7b87f1737fa09df7b3e19bf0d728b}{calculate\+\_\+bit\+\_\+maps\+\_\+bytes}} ()
+\item 
+void \mbox{\hyperlink{classPacked__sample_ab2f6161820109568b4eb1da0b32c2b11}{to\+\_\+bit\+\_\+map}} ()
+\item 
+void \mbox{\hyperlink{classPacked__sample_aee75395c481cd25d8a46b5bc2f9b1b8d}{codificar\+\_\+cuartil}} (int cuartil)
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a518e34a94d34e22fda56c507d3340d0b}\label{classPacked__sample_a518e34a94d34e22fda56c507d3340d0b}} 
+unsigned char {\bfseries packed\+\_\+buffer} \mbox{[}S\+A\+M\+P\+L\+E\+S\+\_\+\+B\+U\+F\+F\+E\+R\+\_\+\+S\+I\+ZE\mbox{]}
+\item 
+\mbox{\Hypertarget{classPacked__sample_aeea86eede349aa3b326ff9a3429c6471}\label{classPacked__sample_aeea86eede349aa3b326ff9a3429c6471}} 
+unsigned char {\bfseries n\+\_\+samples}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a3105391c3cde9b950e15084d01dde53b}\label{classPacked__sample_a3105391c3cde9b950e15084d01dde53b}} 
+unsigned int {\bfseries sample\+\_\+size}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a2cc83416e6da4f7d1dc9c6f81e2d0e21}\label{classPacked__sample_a2cc83416e6da4f7d1dc9c6f81e2d0e21}} 
+unsigned int {\bfseries interval}
+\item 
+\mbox{\Hypertarget{classPacked__sample_ab3f4aae23ca8f98d196eed4ed24d53ff}\label{classPacked__sample_ab3f4aae23ca8f98d196eed4ed24d53ff}} 
+int {\bfseries memtotal}
+\item 
+\mbox{\Hypertarget{classPacked__sample_ac4fb5c05bc915b237f9c0379f1d7a1f2}\label{classPacked__sample_ac4fb5c05bc915b237f9c0379f1d7a1f2}} 
+int {\bfseries samples\+\_\+packed}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a6934c617b106c9442ec47f3e1e447e71}\label{classPacked__sample_a6934c617b106c9442ec47f3e1e447e71}} 
+int {\bfseries packed\+\_\+ptr}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a29a0b671003cff30a3358438dfe7b8dd}\label{classPacked__sample_a29a0b671003cff30a3358438dfe7b8dd}} 
+int {\bfseries packed\+\_\+bytes}
+\item 
+\mbox{\Hypertarget{classPacked__sample_aaa1a60cd02bf0c3ab049ba873a7bb55f}\label{classPacked__sample_aaa1a60cd02bf0c3ab049ba873a7bb55f}} 
+int {\bfseries sample\+\_\+pt}
+\item 
+\mbox{\Hypertarget{classPacked__sample_abd620c942a7a12ef35a919953aeae8d8}\label{classPacked__sample_abd620c942a7a12ef35a919953aeae8d8}} 
+int {\bfseries n\+\_\+devices\+\_\+io}
+\item 
+\mbox{\Hypertarget{classPacked__sample_ac304b61fccf362cd6b63431ae6617aaf}\label{classPacked__sample_ac304b61fccf362cd6b63431ae6617aaf}} 
+int {\bfseries n\+\_\+interfaces}
+\item 
+\mbox{\Hypertarget{classPacked__sample_aa03df50300ba082983bec43fde2dcfcc}\label{classPacked__sample_aa03df50300ba082983bec43fde2dcfcc}} 
+int {\bfseries threshold}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a6836bab2e3884d91a210dfd9582e8172}\label{classPacked__sample_a6836bab2e3884d91a210dfd9582e8172}} 
+int {\bfseries n\+\_\+core\+\_\+temps}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a0cd1776e2c22d2bdcc261a3cbd3f425c}\label{classPacked__sample_a0cd1776e2c22d2bdcc261a3cbd3f425c}} 
+int {\bfseries n\+\_\+cpu}
+\item 
+\mbox{\Hypertarget{classPacked__sample_ab0cc7313722434ceb59311fd62bce9a3}\label{classPacked__sample_ab0cc7313722434ceb59311fd62bce9a3}} 
+int {\bfseries n\+\_\+cores}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a3de25552f73ca3923a38ca093141e9b2}\label{classPacked__sample_a3de25552f73ca3923a38ca093141e9b2}} 
+int {\bfseries n\+\_\+gpus}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a9d4a99cf371ec3eb3bafec94f3ab14df}\label{classPacked__sample_a9d4a99cf371ec3eb3bafec94f3ab14df}} 
+time\+\_\+t {\bfseries time\+\_\+sample}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a6bc7206a284224da9d7e02c02df44190}\label{classPacked__sample_a6bc7206a284224da9d7e02c02df44190}} 
+std\+::string {\bfseries ip\+\_\+addr\+\_\+s}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a1b2d783596c43834cc0ec206ac79d74e}\label{classPacked__sample_a1b2d783596c43834cc0ec206ac79d74e}} 
+std\+::vector$<$ std\+::string $>$ {\bfseries ip\+\_\+v}
+\item 
+\mbox{\Hypertarget{classPacked__sample_ab731208ea2b0130074f7ea314bc35d72}\label{classPacked__sample_ab731208ea2b0130074f7ea314bc35d72}} 
+unsigned char {\bfseries bit\+\_\+map} \mbox{[}$\,$\mbox{]}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a09932f4fc8f094a83970ce654c016809}\label{classPacked__sample_a09932f4fc8f094a83970ce654c016809}} 
+int {\bfseries datos\+\_\+cuartil}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a2be2b558b4dea63a35e09f8537f6c1fe}\label{classPacked__sample_a2be2b558b4dea63a35e09f8537f6c1fe}} 
+int {\bfseries bytes\+\_\+bitmap}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a223c30aff7236f66fb3ad9b80e534e01}\label{classPacked__sample_a223c30aff7236f66fb3ad9b80e534e01}} 
+int {\bfseries bit\+\_\+map\+\_\+ptr}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a4b49acd658c4944b709d49ccf84617de}\label{classPacked__sample_a4b49acd658c4944b709d49ccf84617de}} 
+int {\bfseries byte\+\_\+bit\+\_\+map}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a9dade1fad6b011dd8f6b81c38e1db4a5}\label{classPacked__sample_a9dade1fad6b011dd8f6b81c38e1db4a5}} 
+unsigned char {\bfseries memory\+\_\+avg}
+\item 
+\mbox{\Hypertarget{classPacked__sample_adfc0f8f316947f3d0e71070cebf12360}\label{classPacked__sample_adfc0f8f316947f3d0e71070cebf12360}} 
+unsigned char {\bfseries cpu\+\_\+avg}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a1267c69edfbde4a1fc8711426377e9e4}\label{classPacked__sample_a1267c69edfbde4a1fc8711426377e9e4}} 
+vector$<$ unsigned char $>$ {\bfseries pw\+\_\+cpu}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a5119395999ed7a08224aff910f8cdd43}\label{classPacked__sample_a5119395999ed7a08224aff910f8cdd43}} 
+vector$<$ unsigned char $>$ {\bfseries dev\+\_\+avg}
+\item 
+\mbox{\Hypertarget{classPacked__sample_a5a38aca54c18317983e84555bdc34b66}\label{classPacked__sample_a5a38aca54c18317983e84555bdc34b66}} 
+vector$<$ unsigned char $>$ {\bfseries net\+\_\+avg}
+\item 
+\mbox{\Hypertarget{classPacked__sample_af3de44069cdcdb84ca9a7276d4636f43}\label{classPacked__sample_af3de44069cdcdb84ca9a7276d4636f43}} 
+vector$<$ unsigned char $>$ {\bfseries temp\+\_\+avg}
+\item 
+\mbox{\Hypertarget{classPacked__sample_aabf7b91d64707c0cfd28b1e39895b895}\label{classPacked__sample_aabf7b91d64707c0cfd28b1e39895b895}} 
+vector$<$ unsigned char $>$ {\bfseries gpu\+\_\+avg}
+\item 
+\mbox{\Hypertarget{classPacked__sample_ac23fc36604ee64c993deeb78127a04ba}\label{classPacked__sample_ac23fc36604ee64c993deeb78127a04ba}} 
+vector$<$ \mbox{\hyperlink{structGpu__accu}{Gpu\+\_\+accu}} $>$ {\bfseries gpu\+\_\+accu}
+\end{DoxyCompactItemize}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classPacked__sample_a09d7b87f1737fa09df7b3e19bf0d728b}\label{classPacked__sample_a09d7b87f1737fa09df7b3e19bf0d728b}} 
+\index{Packed\+\_\+sample@{Packed\+\_\+sample}!calculate\+\_\+bit\+\_\+maps\+\_\+bytes@{calculate\+\_\+bit\+\_\+maps\+\_\+bytes}}
+\index{calculate\+\_\+bit\+\_\+maps\+\_\+bytes@{calculate\+\_\+bit\+\_\+maps\+\_\+bytes}!Packed\+\_\+sample@{Packed\+\_\+sample}}
+\subsubsection{\texorpdfstring{calculate\+\_\+bit\+\_\+maps\+\_\+bytes()}{calculate\_bit\_maps\_bytes()}}
+{\footnotesize\ttfamily int Packed\+\_\+sample\+::calculate\+\_\+bit\+\_\+maps\+\_\+bytes (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Calculate size of bit map on bytes
+
+\begin{DoxyReturn}{Returns}
+Size of bit map on bytes 
+\end{DoxyReturn}
+n\+\_\+cpu = Number of cpus mem\+\_\+cpu = n\+\_\+interfaces = number of interfaces n\+\_\+devices\+\_\+io = number of I/O devices n\+\_\+core\+\_\+temps = number of coretemps
+
+n\+\_\+gpus = number of gpus for each gpu 4 bytes\+: memory\+Usage, gpu\+Usage, temperature and power\+Usage\mbox{\Hypertarget{classPacked__sample_a3f941028cbd26a98a99cd3c000b08666}\label{classPacked__sample_a3f941028cbd26a98a99cd3c000b08666}} 
+\index{Packed\+\_\+sample@{Packed\+\_\+sample}!calculate\+\_\+sample\+\_\+size@{calculate\+\_\+sample\+\_\+size}}
+\index{calculate\+\_\+sample\+\_\+size@{calculate\+\_\+sample\+\_\+size}!Packed\+\_\+sample@{Packed\+\_\+sample}}
+\subsubsection{\texorpdfstring{calculate\+\_\+sample\+\_\+size()}{calculate\_sample\_size()}}
+{\footnotesize\ttfamily void Packed\+\_\+sample\+::calculate\+\_\+sample\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Calculate the size of a sample. n\+\_\+cpu = Number of cpus mem\+\_\+cpu = n\+\_\+interfaces = number of interfaces n\+\_\+devices\+\_\+io = number of I/O devices n\+\_\+core\+\_\+temps = number of coretemps
+
+n\+\_\+gpus = number of gpus for each gpu 4 bytes\+: memory\+Usage, gpu\+Usage, temperature and power\+Usage\mbox{\Hypertarget{classPacked__sample_aee75395c481cd25d8a46b5bc2f9b1b8d}\label{classPacked__sample_aee75395c481cd25d8a46b5bc2f9b1b8d}} 
+\index{Packed\+\_\+sample@{Packed\+\_\+sample}!codificar\+\_\+cuartil@{codificar\+\_\+cuartil}}
+\index{codificar\+\_\+cuartil@{codificar\+\_\+cuartil}!Packed\+\_\+sample@{Packed\+\_\+sample}}
+\subsubsection{\texorpdfstring{codificar\+\_\+cuartil()}{codificar\_cuartil()}}
+{\footnotesize\ttfamily void Packed\+\_\+sample\+::codificar\+\_\+cuartil (\begin{DoxyParamCaption}\item[{int}]{cuartil }\end{DoxyParamCaption})}
+
+Encodes the value passed by parameters in the bit map
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em cuartil} & number to be coded \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classPacked__sample_acc6f96c07fc1df249ae439b7644deeeb}\label{classPacked__sample_acc6f96c07fc1df249ae439b7644deeeb}} 
+\index{Packed\+\_\+sample@{Packed\+\_\+sample}!pack\+\_\+monitoring@{pack\+\_\+monitoring}}
+\index{pack\+\_\+monitoring@{pack\+\_\+monitoring}!Packed\+\_\+sample@{Packed\+\_\+sample}}
+\subsubsection{\texorpdfstring{pack\+\_\+monitoring()}{pack\_monitoring()}}
+{\footnotesize\ttfamily void Packed\+\_\+sample\+::pack\+\_\+monitoring (\begin{DoxyParamCaption}\item[{int}]{mem\+\_\+usa,  }\item[{int}]{cpu\+\_\+usa,  }\item[{int $\ast$}]{devices\+\_\+usa\mbox{[}2\mbox{]},  }\item[{int $\ast$}]{net\+\_\+usa,  }\item[{int $\ast$}]{temp }\end{DoxyParamCaption})}
+
+Pack sample into buffer to be sent.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em sample} & String to be packed in the buffer. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classPacked__sample_a4649ca58fb22958ffbae97337bc33576}\label{classPacked__sample_a4649ca58fb22958ffbae97337bc33576}} 
+\index{Packed\+\_\+sample@{Packed\+\_\+sample}!pack\+\_\+sample\+\_\+s@{pack\+\_\+sample\+\_\+s}}
+\index{pack\+\_\+sample\+\_\+s@{pack\+\_\+sample\+\_\+s}!Packed\+\_\+sample@{Packed\+\_\+sample}}
+\subsubsection{\texorpdfstring{pack\+\_\+sample\+\_\+s()}{pack\_sample\_s()}}
+{\footnotesize\ttfamily void Packed\+\_\+sample\+::pack\+\_\+sample\+\_\+s (\begin{DoxyParamCaption}\item[{std\+::string}]{sample }\end{DoxyParamCaption})}
+
+Pack sample into buffer to be sent.
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em sample} & String to be packed in the buffer. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classPacked__sample_a66e88d8826169e056dc88b9654ce70f8}\label{classPacked__sample_a66e88d8826169e056dc88b9654ce70f8}} 
+\index{Packed\+\_\+sample@{Packed\+\_\+sample}!parse\+\_\+log@{parse\+\_\+log}}
+\index{parse\+\_\+log@{parse\+\_\+log}!Packed\+\_\+sample@{Packed\+\_\+sample}}
+\subsubsection{\texorpdfstring{parse\+\_\+log()}{parse\_log()}}
+{\footnotesize\ttfamily vector$<$ string $>$ Packed\+\_\+sample\+::parse\+\_\+log (\begin{DoxyParamCaption}\item[{std\+::string}]{sample }\end{DoxyParamCaption})}
+
+Parse sample to include on the buffer
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em sample} & String including sample to be parsed. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Vector of strings including the parsed contents. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classPacked__sample_a89c91c30951a092a804e1f371b226060}\label{classPacked__sample_a89c91c30951a092a804e1f371b226060}} 
+\index{Packed\+\_\+sample@{Packed\+\_\+sample}!split\+\_\+log@{split\+\_\+log}}
+\index{split\+\_\+log@{split\+\_\+log}!Packed\+\_\+sample@{Packed\+\_\+sample}}
+\subsubsection{\texorpdfstring{split\+\_\+log()}{split\_log()}}
+{\footnotesize\ttfamily vector$<$ string $>$ Packed\+\_\+sample\+::split\+\_\+log (\begin{DoxyParamCaption}\item[{std\+::string}]{str }\end{DoxyParamCaption})}
+
+Splits the log
+
+
+\begin{DoxyParams}[1]{Parameters}
+\mbox{\tt in}  & {\em str} & String representing the log content. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Vector of strings with the log splitted 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classPacked__sample_ab2f6161820109568b4eb1da0b32c2b11}\label{classPacked__sample_ab2f6161820109568b4eb1da0b32c2b11}} 
+\index{Packed\+\_\+sample@{Packed\+\_\+sample}!to\+\_\+bit\+\_\+map@{to\+\_\+bit\+\_\+map}}
+\index{to\+\_\+bit\+\_\+map@{to\+\_\+bit\+\_\+map}!Packed\+\_\+sample@{Packed\+\_\+sample}}
+\subsubsection{\texorpdfstring{to\+\_\+bit\+\_\+map()}{to\_bit\_map()}}
+{\footnotesize\ttfamily void Packed\+\_\+sample\+::to\+\_\+bit\+\_\+map (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+Calculate size of bit map on bytes
+
+\begin{DoxyReturn}{Returns}
+Size of bit map on bytes 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/Packed\+\_\+sample.\+hpp\item 
+src/Packed\+\_\+sample.\+cpp\end{DoxyCompactItemize}

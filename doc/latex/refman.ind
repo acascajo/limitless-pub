@@ -1,0 +1,71 @@
+\begin{theindex}
+
+  \item {calculate\+\_\+bit\+\_\+maps\+\_\+bytes}
+    \subitem {Packed\+\_\+sample}, \hyperpage{10}
+  \item {calculate\+\_\+sample\+\_\+size}
+    \subitem {Packed\+\_\+sample}, \hyperpage{10}
+  \item {codificar\+\_\+cuartil}
+    \subitem {Packed\+\_\+sample}, \hyperpage{10}
+  \item {cpu\+\_\+dev}, \hyperpage{5}
+  \item {cpu\+\_\+stats}, \hyperpage{5}
+
+  \indexspace
+
+  \item {devices\+\_\+stats}, \hyperpage{6}
+  \item {Dir\+\_\+path}, \hyperpage{6}
+
+  \indexspace
+
+  \item {Gpu\+\_\+accu}, \hyperpage{6}
+  \item {Gpu\+\_\+dev}, \hyperpage{7}
+
+  \indexspace
+
+  \item {handle\+\_\+args}, \hyperpage{7}
+  \item {hw\+\_\+conf}, \hyperpage{7}
+
+  \indexspace
+
+  \item {io\+\_\+dev}, \hyperpage{8}
+
+  \indexspace
+
+  \item {net\+\_\+dev}, \hyperpage{8}
+  \item {net\+\_\+stats}, \hyperpage{8}
+
+  \indexspace
+
+  \item {pack\+\_\+monitoring}
+    \subitem {Packed\+\_\+sample}, \hyperpage{10}
+  \item {pack\+\_\+sample\+\_\+s}
+    \subitem {Packed\+\_\+sample}, \hyperpage{11}
+  \item {Packed\+\_\+sample}, \hyperpage{9}
+    \subitem {calculate\+\_\+bit\+\_\+maps\+\_\+bytes}, \hyperpage{10}
+    \subitem {calculate\+\_\+sample\+\_\+size}, \hyperpage{10}
+    \subitem {codificar\+\_\+cuartil}, \hyperpage{10}
+    \subitem {pack\+\_\+monitoring}, \hyperpage{10}
+    \subitem {pack\+\_\+sample\+\_\+s}, \hyperpage{11}
+    \subitem {parse\+\_\+log}, \hyperpage{11}
+    \subitem {split\+\_\+log}, \hyperpage{11}
+    \subitem {to\+\_\+bit\+\_\+map}, \hyperpage{12}
+  \item {packet}, \hyperpage{12}
+  \item {parse\+\_\+log}
+    \subitem {Packed\+\_\+sample}, \hyperpage{11}
+  \item {power\+\_\+cpu}, \hyperpage{12}
+
+  \indexspace
+
+  \item {req\+\_\+inf}, \hyperpage{13}
+
+  \indexspace
+
+  \item {split\+\_\+log}
+    \subitem {Packed\+\_\+sample}, \hyperpage{11}
+
+  \indexspace
+
+  \item {temp\+\_\+features}, \hyperpage{13}
+  \item {to\+\_\+bit\+\_\+map}
+    \subitem {Packed\+\_\+sample}, \hyperpage{12}
+
+\end{theindex}

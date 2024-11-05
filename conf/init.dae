@@ -1,0 +1,40 @@
+# Fichero de configuración de DaeMon Monitor
+# sample period
+5000
+# master port
+5000
+# num measurements per sample
+1
+# server ip
+10.0.0.35
+# elastic search IP
+127.0.0.1
+#Bitmap mode
+0
+# Threshold filter
+0
+# Threshold filter value
+70
+# Interval get processes
+-1
+# TMR mode
+0
+# Server backup ip 1
+-1
+# Server backup ip 2
+-1
+# Notify events only (!= 0) or send all events
+0
+# Threshold notifications events
+# MEM
+95
+# CPU
+50
+# IO
+50
+# NET
+50
+#
+# ENERGY
+#
+50

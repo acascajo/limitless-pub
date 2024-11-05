@@ -1,0 +1,89 @@
+\section*{H\+PC and Scalable Monitor}
+
+This monitor processes different files in teh system to obtain updated information about the status of the system including\+:
+
+
+\begin{DoxyItemize}
+\item I\+P\+\_\+\+Addr\+: Host ip.
+\item Mem\+: Total dynamic memory in Giga\+Bytes.
+\item Mem\+Usage\+: Percentage of dynamic memory used.
+\item N\+C\+PU\+: Number of C\+P\+Us per node.
+\item N\+Cores\+: Number of cores per node.
+\item C\+P\+U\+Busy\+: percentage of cpu idle in the sampling interval.
+\item w\+: percentage of writes related to IO traffic in the sampling interval.
+\item t\+IO\+: Percentage of IO time in the sampling interval.
+\item Speed\+: Speed of the interface in Giga bits per second.
+\item Net\+Usage\+: Percentage of interface used in the sampling interval.
+\item Current\+Temp\+: Current temperature of the node on degrees Celsius.
+\item Temp(\%)\+: Percentage of temperature reached based on the maximum temperature.
+\end{DoxyItemize}
+
+Given in the following format\+:
+
+
+\begin{DoxyCode}
+IP\_Addr Mem(GB) MemUsage(%) NCPU NCores CPUBusy(%) <for each device>(w(%) tIO(%)) <for each
+       interface>(Speed(Gb/s) NetUsate(%)) <for each coretemp>CurrentTemp Temp(%)
+\end{DoxyCode}
+
+
+\#\# Input Parameters and usage \#\# 
+\begin{DoxyCode}
+./DaeMon -i <time interval (ms)> -s <samples to send packed (1 - 255)> -t <threshold 0-100> -p <number port
+       of master server (1024 <= port <= 65535)> -a <address or name of master server> 
+\end{DoxyCode}
+
+
+
+\begin{DoxyItemize}
+\item Time interval\+: Number of miliseconds in which the node will be sampled.
+\item Samples to be sent\+: Number of samples that will be included in the packet.
+\item 
+\end{DoxyItemize}
+
+\subsection*{Packet composition}
+
+
+\begin{DoxyItemize}
+\item 0-\/3 \+: I\+P-\/\+Address
+\item 4 \+: Memory Giga\+Bytes
+\item 5 \+: Number of C\+P\+Us
+\item 6 \+: Number of cores per C\+PU
+\item 7 \+: Number of devices
+\item 8 \+: Number of interfaces
+\item 9 \+: Number of coretemps
+\item 10 \+: Number of G\+P\+Us
+\item 11 \+: Number of samples packed
+\item 12 \+: Memory usage (\%)
+\item 13 \+: C\+PU Busy (\%)
+\begin{DoxyItemize}
+\item F\+OR E\+A\+CH C\+PU, E\+N\+E\+R\+GY S\+P\+E\+NT IN T\+HE I\+N\+T\+E\+R\+V\+AL
+\begin{DoxyItemize}
+\item x \+: Energy in joules since computer starts. ~\newline
+
+\end{DoxyItemize}
+\item F\+OR E\+A\+CH D\+E\+V\+I\+CE
+\begin{DoxyItemize}
+\item x \+: Percentage of time doing write tasks
+\item y \+: Percentage of time in the sampling interval doing I/O
+\end{DoxyItemize}
+\item F\+OR E\+A\+CH N\+ET I\+N\+T\+E\+R\+F\+A\+CE
+\begin{DoxyItemize}
+\item x \+: Speed of the interface in Giga\+Bits per second
+\item y \+: Percentage of net usage in the sampling interval
+\end{DoxyItemize}
+\item F\+OR E\+A\+CH C\+O\+R\+E\+T\+E\+MP
+\begin{DoxyItemize}
+\item x \+: Current temperatue
+\item y \+: Percentage of current temperature over critical temperature
+\end{DoxyItemize}
+\item F\+OR E\+A\+CH G\+PU
+\begin{DoxyItemize}
+\item a \+: C\+U\+DA compatible G\+PU (1 compatible, -\/1 no comptable)!!!!!!!
+\item b \+: Memory of G\+PU usage (\%)
+\item c \+: Gpu usage (\%)
+\item d \+: Temperature of G\+PU on degrees Celsius
+\item e \+: Power of G\+PU on Watts 
+\end{DoxyItemize}
+\end{DoxyItemize}
+\end{DoxyItemize}
