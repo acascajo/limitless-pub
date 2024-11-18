@@ -1,4 +1,4 @@
-# Fichero de configuración de DaeMon Monitor
+# LDM Configuration file
 # sample period
 5000
 # master port
@@ -7,34 +7,39 @@
 1
 # server ip
 10.0.0.35
-# elastic search IP
+# Database IP
 127.0.0.1
-#Bitmap mode
+# Bitmap mode
 0
-# Threshold filter
+# Threshold filter OFF/ON 
 0
 # Threshold filter value
 70
-# Interval get processes
+# Interval to get processes info (deprecated)
 -1
-# TMR mode
+# TMR mode OFF/ON
 0
-# Server backup ip 1
+# LDS/LDA backup ip 1 - used in case of connection failure
 -1
-# Server backup ip 2
+# LDS/LDA backup ip 2 - used in case of connection failure
 -1
-# Notify events only (!= 0) or send all events
+# Send all metrics ON/OFF (in OFF mode, only events with values greater than "threshold" are sent
 0
-# Threshold notifications events
-# MEM
+# Thresholds for notifications events
+# Memory
 95
 # CPU
 50
 # IO
 50
-# NET
+# Network bandwidth
 50
 #
-# ENERGY
+# Enegry consumption
 #
 50
+
+#[Optional, depending on the build configuration]
+# CCTI configuration
+#
+#2
