@@ -1,19 +1,14 @@
 #ifndef DAEMON_MONITOR_H
 #define DAEMON_MONITOR_H
 
-
-#include <cstdio>
 #include <cstring>
-#include <cstdlib>
 #include <unistd.h>
 #include <string>
-#include <cstring>
 #include <sstream>
 #include <iostream>
 #include <fstream>
 #include <ctime>
 #include <vector>
-#include  <dirent.h>
 #include "common.hpp"
 
 using namespace std;

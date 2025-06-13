@@ -12,18 +12,14 @@ typedef struct power_cpu{
 }Power_cpu;
 
 /**
-
 	Obtain the path of power stats
 	@param [in, out] pwcpu, variable in which the route is saved
-
 */
-int get_power_path(vector<Power_cpu> & pwcpu, int & path_error, int n_cpu);
+int get_power_path(std::vector<Power_cpu> & pwcpu, int & path_error, int n_cpu);
 
 
-/**
-
-
-*/
 int get_power(std::vector<Power_cpu> & pwcpu, int path_error, int n_cpu);
+
+int get_power_pi();
 
 #endif

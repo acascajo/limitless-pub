@@ -6,6 +6,7 @@
 #include "Packed_sample.hpp"
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <vector>
 
 #define CONF_PACKET_SIZE 8
 #define IP_SIZE 4
@@ -41,15 +42,14 @@ int recvn(int socket_descriptor, void *buf, int n);
 
 struct handle_args{
     char client_IP[30];
-    unsigned char * buffer;
+    //unsigned char * buffer;
+    std::vector<unsigned char> buffer;
     ssize_t size;
     int socket;
     struct sockaddr_in* client_addr;
 
 };
 int manage_monitoring_packet (unsigned char * buffer, ssize_t size, const std::string &clientIP);
-void * manage_allocate_packet(unsigned char * buffer, struct sockaddr_in si_other, int socket);
-void * manage_query_packet(unsigned char * bufferstruct, struct sockaddr_in si_other, int socket);
 int obtainHostNameByIP(char const * ip, char * host);
 void managePrometheusServer();
 void managePrometheusServerGeneric();

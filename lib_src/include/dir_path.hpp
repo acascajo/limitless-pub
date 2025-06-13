@@ -3,10 +3,8 @@
 
 #include <vector>
 #include <string>
-//#include <string.h>
 
 using namespace std;
-
 
 class Dir_path{
 	public:

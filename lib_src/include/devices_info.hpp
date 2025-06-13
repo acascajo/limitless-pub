@@ -40,27 +40,19 @@ typedef struct io_dev{
         Devices_stats stats[2];
 }IO_dev;
 
-
-
-
 /**
         Read the number of devices
-
         @param [in, out] s_dv features of each device
         @param [in, out] n_devices number of devices in the node
 */
 int read_n_devices(std::vector<IO_dev> & s_dv, int & n_devices);
 
-
-
 /**
         Function that its called each loop to read devices stats
-
         @param [in, out] s_dv features of each device
         @param [in] tinterval time of the interval, used to calculate stats 
 */
 void read_devices_stats(std::vector<IO_dev> & s_dv, unsigned int tinterval);
-
 
 /**
         Update values of a device

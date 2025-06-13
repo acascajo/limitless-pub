@@ -20,7 +20,7 @@ int init_server(int port);
 int manage_server();
 
 void recoveryMode(char* elasticsearch_add);
-int manage_server_udp(int master_ret);
+int manage_server_udp();
 int manage_intermediate_server_udp();
 int initialize_master_socket(char *server, int port);
 int initialize_backup1_socket(char *server, int port);

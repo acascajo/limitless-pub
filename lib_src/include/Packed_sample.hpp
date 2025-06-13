@@ -9,7 +9,6 @@
 #include <ctime>
 #include <memory>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <arpa/inet.h>
 
 #define MEMORY_OUT 128
@@ -40,10 +39,8 @@ using namespace std;
 class Packed_sample {
 
 public:
-
     unsigned char packed_buffer[SAMPLES_BUFFER_SIZE];
     unsigned char n_samples;
-
     unsigned int sample_size;
     unsigned int interval;
     int memtotal;
@@ -82,15 +79,11 @@ public:
     vector<unsigned char> net_avg;
 
     Packed_sample();
-
     Packed_sample(Hw_conf hwconf, unsigned int interval, int n_samples, int threshold);
-
     ~Packed_sample();
 
     void set_n_samples(int n_samples);
-
     void set_n_devices_io(int n_devices_io);
-
     void set_n_interfaces(int n_interfaces);
 
     /*
@@ -98,88 +91,64 @@ public:
     */
     void pack_features();
 
-
     /**
         Pack sample into buffer to be sent.
-
         @param [in] sample String to be packed in the buffer.
     */
     void pack_monitoring(int mem_usa, int cpu_usa, int *devices_usa[2], int *net_usa, int *temp);
 
-
     /**
         Pack sample into buffer to be sent.
-
         @param [in] sample String to be packed in the buffer.
     */
     void pack_sample_s(std::string sample);
-
     void pack_sample_s(std::string sample, double cache_miss, double cpu_stalled);//, std::vector<Core_dev> cores);
-
     void pack_sample_prometheus(string sample, std::string jobname);
-
     void pack_sample_generic(string sample);
-
     void Aggregation_sample(std::string ip, int mem, int cpu, int iot, int iow, int net);
-
     void Aggregation_sample_generic(std::string ip, std::vector<unsigned long> counters, std::vector<string> keys);
-
 
     /**
         Splits the log
-
         @param [in] str String representing the log content.
         @return Vector of strings with the log splitted
-
     */
     vector<string> split_log(std::string str);
 
-
     /**
         Parse sample to include on the buffer
-
         @param [in] sample String including sample to be parsed.
         @return Vector of strings including the parsed contents.
-
     */
     vector<string> parse_log(std::string sample);
 
     /**
         Calculate the size of a sample.
-
     */
     void calculate_sample_size();
 
-
     /**
         Calculate size of bit map on bytes
-
         @return Size of bit map on bytes
-
     */
     int calculate_bit_maps_bytes();
 
-
     /**
         Calculate size of bit map on bytes
-
         @return Size of bit map on bytes
-
     */
     void to_bit_map();
 
-
     /**
         Encodes the value passed by parameters in the bit map
-
         @param[in] cuartil number to be coded
-
     */
     void codificar_cuartil(int cuartil);
-
 };
 
-
+/*
+ * Functions for serialization
+ */
 void serialize_int(unsigned char *buffer, unsigned int value);
 int deserialize_int(unsigned char *buffer);
 void serialize_long(unsigned char *buffer, unsigned long value);
@@ -221,6 +190,5 @@ int create_conf_packet(Hw_conf hw_conf, char * conf_packed);
 int create_sample_packet(Packed_sample &info, unsigned char * buffer);
 
 int create_generic_packet(Packed_sample &info, unsigned char * buffer);
-
 
 #endif

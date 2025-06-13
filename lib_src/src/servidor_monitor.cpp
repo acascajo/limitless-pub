@@ -1,30 +1,19 @@
-#include <strings.h>
-#include <unistd.h>
-#include <sysexits.h>
-#include <cctype>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <fcntl.h>
-#include <cstdlib>
-#include <cstdio>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <cstring>
-#include <netinet/in.h>
-#include <sys/stat.h>
-#include <cerrno>
-#include "servidor_monitor.hpp"
-#include "server_data.hpp"
-#include "network_data.hpp"
-#include "Packed_sample.hpp"
 #include <iostream>
 #include <chrono>
 #include <thread>
 #include <mutex>
-#include "common.hpp"
-#include "library.h"
 #include <algorithm>
 #include <map>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include "servidor_monitor.hpp"
+#include "server_data.hpp"
+#include "network_data.hpp"
+#include "Packed_sample.hpp"
+#include "common.hpp"
 
 
 #define NUM_ACCEPTED_CON 10
@@ -36,7 +25,7 @@ using namespace std;
 pthread_mutex_t mut_thread;
 pthread_cond_t cond_thread;
 
-pthread_cond_t emptycond;
+pthread_cond_t empty_cond;
 pthread_mutex_t proc_mut;
 int busy = 0; //if 0 false, if 1 true
 
@@ -90,37 +79,24 @@ int registered_nodes_agg = 0;
  * @param local_inf
  */
 void manageRequestUDP(struct handle_args *local_inf){
-	unsigned char type;
-	int btype_read;
-	char * tmp_buf=NULL; 
-	char clientId[30];
 	Hw_conf hw_conf;
-	int error = 0;	
 
-	//sprintf(clientId,"(%s)",local_inf->client_IP);
-	#ifdef DAEMON_SERVER_DEBUG
-	//	cout << clientId << " Waiting for information from connected client" << endl;
-	#endif
 	//recvn function either receives n bytes by retrying recv or detects error (-1) or close/shutdown of peer (0)
 	//receive request type (a char) or detect closed socket
 
 	/********* obtaining request type (1 byte) ***********/
-	type = local_inf->buffer[BTYPE_POS];
-	//printf("Codigo recibido: %c\n", type);
+	unsigned char type = local_inf->buffer[BTYPE_POS];
 
 	if (type == 'v') {
-		//printf("Flex - Query\n");
 		local_inf->socket = sd_flex_listen;
 		local_inf->client_addr = &si_other_flex;
 		//DISABLED:manage_query_packet(&(local_inf->buffer[0]), si_other_flex, sd_flex_listen);
-	}else if(type == 0){ //Configuration request
-		
-		#ifdef DAEMON_SERVER_DEBUG
-			//cout << "New configuration packet at " << clientId <<"." << endl;
-		#endif
+	}else if(type == 0){
+		int error = 0;
+		//Configuration request
+
 		/****** receiving request header information ***********/
 		/*OBtain the hardware configuration from client*/
-
 		obtain_conf_from_packet(&local_inf->buffer[BTYPE_POS+1], &hw_conf,local_inf->client_IP);
 		
 		error = insert_hw_conf(hw_conf);
@@ -129,17 +105,10 @@ void manageRequestUDP(struct handle_args *local_inf){
 		}
 
 		/********************************************************/
-		#ifdef DAEMON_SERVER_DEBUG
-			//print_hw_conf(&hw_conf);
-		#endif		
 	} else if (type < MAX_SAMPLES){ //Monitoring message
-		
 		//cout << "Llamando a manage_monitoring_packet" << endl;
 		manage_monitoring_packet (&(local_inf->buffer[BTYPE_POS]), local_inf->size, local_inf->client_IP);
-
-
 	}else { //Client query
-		//printf("client - Query\n");
 		local_inf->socket = sd_client_listen;
 		local_inf->client_addr = &si_other;
 		//DISABLED:manage_query_packet(&(local_inf->buffer[0]), si_other, sd_client_listen);
@@ -147,8 +116,6 @@ void manageRequestUDP(struct handle_args *local_inf){
         cerr << clientId << "Request type unknown: " << type << ", closing connection." << endl;
     #endif*/
 	}
-
-
 	//returns to accept another request
 }
 
@@ -159,34 +126,36 @@ void manageRequestUDP(struct handle_args *local_inf){
  * @return
  */
 void *run(void *global) {
-	struct handle_args* global_inf;
 	struct handle_args local_inf;
-	
-	//auto start = std::chrono::high_resolution_clock::now();
 
-	global_inf = (struct handle_args * )global;
+	//auto start = std::chrono::high_resolution_clock::now();
 
 	//This mutext and the next things commented are for launches without worker threads (when we launched global threads)
 	//pthread_mutex_lock(&mut_thread);
 	/*Allocate temporal buffer with size of request + size of IP*/
-	local_inf.buffer = (unsigned char *) calloc(global_inf->size+IP_SIZE, sizeof(unsigned char));
-	/*Copy into local buffer*/
-	memcpy(local_inf.client_IP, global_inf->client_IP, sizeof(local_inf.client_IP));
+
+	struct handle_args *global_inf = (struct handle_args *) global;
+	std::vector<unsigned char> local_buffer(global_inf->buffer.size() + IP_SIZE);//(global_inf->size + IP_SIZE);
+	std::memcpy(local_inf.client_IP, global_inf->client_IP, sizeof(local_inf.client_IP));
 	local_inf.size = global_inf->size;
-	memcpy(local_inf.buffer,global_inf->buffer, local_inf.size);
-	busy=0;
+
+	//std::memcpy(local_buffer.data(), global_inf->buffer, local_inf.size);
+	//local_inf.buffer = local_buffer.data();  // Asignamos el buffer al campo de la estructura
+	local_inf.buffer = global_inf->buffer;
+
+	busy = 0;
 	//pthread_cond_signal(&cond_thread);
 	//pthread_mutex_unlock(&mut_thread);
 	//Process request
-	manageRequestUDP(&local_inf);
-        
-	/*auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << "Processig time: " << duration.count() << std::endl;*/
 
-	free(local_inf.buffer);
-	//pthread_exit(NULL);
-  return nullptr;
+	manageRequestUDP(&local_inf);
+
+	//Evaluates the overhead of the packet processing
+	/*auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+	std::cout << "Processig time: " << duration.count() << std::endl;*/
+
+	return nullptr;
 }
 
 /**
@@ -195,39 +164,54 @@ void *run(void *global) {
  * @return
  */
 void *run_generic(void *global){
-  struct handle_args* global_inf;
-  struct handle_args local_inf;
+	struct handle_args local_inf;
 
-  global_inf = (struct handle_args * )global;
-  local_inf.buffer = (unsigned char *) calloc(global_inf->size+IP_SIZE, sizeof(unsigned char));
-  /*Copy into local buffer*/
-  memcpy(local_inf.client_IP, global_inf->client_IP, sizeof(local_inf.client_IP));
-  local_inf.size = global_inf->size;
-  memcpy(local_inf.buffer,global_inf->buffer, local_inf.size);
+	//auto start = std::chrono::high_resolution_clock::now();
 
-  unsigned char type;
-  Hw_conf hw_conf;
-  int error = 0;
+	//This mutext and the next things commented are for launches without worker threads (when we launched global threads)
+	//pthread_mutex_lock(&mut_thread);
+	/*Allocate temporal buffer with size of request + size of IP*/
 
-  /********* obtaining request type (1 byte) ***********/
-  type = local_inf.buffer[BTYPE_POS];
+	struct handle_args *global_inf = (struct handle_args *) global;
+	std::vector<unsigned char> local_buffer(global_inf->buffer.size() + IP_SIZE); //(global_inf->size + IP_SIZE);
+	std::memcpy(local_inf.client_IP, global_inf->client_IP, sizeof(local_inf.client_IP));
+	local_inf.size = global_inf->size;
 
-  if(type == 0){ //Configuration request
-    /****** receiving request header information ***********/
+	//std::memcpy(local_buffer.data(), global_inf->buffer, local_inf.size);
+	//local_inf.buffer = local_buffer.data();  // Asignamos el buffer al campo de la estructura
+	local_inf.buffer = global_inf->buffer;
 
-    obtain_conf_from_packet(&local_inf.buffer[BTYPE_POS+1], &hw_conf,local_inf.client_IP);
+	Hw_conf hw_conf;
 
-    error = insert_hw_conf(hw_conf);
-    if(error == -1){
-      cerr << "Error saving hardware configuration."<< endl;
-    }
+	/********* obtaining request type (1 byte) ***********/
+	unsigned char type = local_inf.buffer[BTYPE_POS];
 
-  } else {// tbon message
-    manage_generic_packet(&local_inf);
-  }
+	if(type == 0){
+		int error = 0;
+		//Configuration request
+		/****** receiving request header information ***********/
 
-  free(local_inf.buffer);
-  return nullptr;
+		obtain_conf_from_packet(&local_inf.buffer[BTYPE_POS+1], &hw_conf,local_inf.client_IP);
+
+		error = insert_hw_conf(hw_conf);
+		if(error == -1){
+			cerr << "Error saving hardware configuration."<< endl;
+		}
+
+	} else {// tbon message
+		manage_generic_packet(&local_inf);
+	}
+
+	//pthread_cond_signal(&cond_thread);
+	//pthread_mutex_unlock(&mut_thread);
+	//Process request
+
+	//Evaluates the overhead of the packet processing
+	/*auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+	std::cout << "Processig time: " << duration.count() << std::endl;*/
+
+	return nullptr;
 }
 
 
@@ -239,7 +223,6 @@ void *run_generic(void *global){
 */
 int init_server(int port) {
     int error = 0;
-
     struct sockaddr_in server_addr;
     int val;
 
@@ -273,22 +256,18 @@ int init_server(int port) {
         return error;
     }
     cout << "Init server " << inet_ntoa(server_addr.sin_addr) << ":" << port << endl;
-#ifdef DAEMON_SERVER_DEBUG
-    cout << "Init server: " << inet_ntoa(server_addr.sin_addr) << ", " << port << "." << endl;
-#endif
 
     pthread_mutex_init(&proc_mut, NULL);
-    pthread_cond_init(&emptycond, NULL);
+    pthread_cond_init(&empty_cond, NULL);
 
     return error;
 }
 
 /**
-
 	Initialize socket for communication.
 	@param server String containing the Ip address to teh server towars the client will
 	communicate.
-	@param port_s String with the number of the port in which the server will be listening.
+	@param port String with the number of the port in which the server will be listening.
 	@return Error in case the socket was not correctly created.
 */
 int initialize_master_socket(char *server, int port){
@@ -299,7 +278,7 @@ int initialize_master_socket(char *server, int port){
 
 	if ( (socket_desc_master=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
 	{
-		std::cerr << " Could not connect to master. " << std::endl;
+		cerr << " Could not connect to master. " << endl;
 		exit(0);
 	}
 
@@ -329,10 +308,9 @@ int initialize_master_socket(char *server, int port){
 		//exit(1);
 	}*/
     if(connect(socket_desc_master,(struct sockaddr *) &si_master, sizeof(si_master)) == -1){
-        printf("Error connecting to the server...\n");
+        cerr << "Error connecting to the server...\n";
         error = -1;
     }
-
 
     return error;
 }
@@ -342,89 +320,68 @@ int initialize_master_socket(char *server, int port){
  * Method to manage an UDP server. It contains one listener reserved to the Daemon requests.
  * @return socket descriptor or -1 if error.
  */
-int manage_server_udp(int master_ret) {
-	int sc = 0;
-	struct sockaddr_in client_addr, flexmpi_addr;
-	socklen_t client_addr_size = sizeof(client_addr);
-	char client_ad[16];
-	char flex_ad[16];
-	unsigned char *tmp_buffer;
-	//struct handle_args *tmp;
-	struct handle_args ha_thread;
-	pthread_attr_t attr;
-	pthread_t thid;
+int manage_server_udp() {
+	struct sockaddr_in client_addr;
+    socklen_t client_addr_size = sizeof(client_addr);
+	handle_args ha_thread;
+    pthread_attr_t attr;
 
-	//std::cout<< "Queue messages max-elements " << _queue_messages.max_size() << std::endl;
+    // Inicializar atributos del hilo y configurarlo como detached
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	tmp_buffer = (unsigned char *) calloc(MAX_PACKET_SIZE, sizeof(unsigned char));
-	//creating thread attributes and setting them to "detached"
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_mutex_init(&mut_thread, nullptr);
+    pthread_cond_init(&cond_thread, nullptr);
 
-	pthread_mutex_init(&mut_thread, NULL);
-	pthread_cond_init(&cond_thread, NULL);
+    while (true) {
+        std::vector<unsigned char> tmp_buffer(MAX_PACKET_SIZE);
 
-	while (1) {
-
-		//This is the socket listener for DaeMon
-		//cout << "Waiting for new request..." << endl;
-		ssize_t size_packet = recvfrom(sd_listen, tmp_buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *) &client_addr, &client_addr_size);
-		/*Receive packet of max length.*/
-		if (size_packet == -1) {
-			//The timeout implies that size_packet will be -1.
-			//cerr << "Error receiving packet. " << endl;
-		} else {
-			/*Packet was succesfully obtained*/
-			//get ip address in a string
-			sprintf(client_ad, inet_ntoa(client_addr.sin_addr), sizeof(client_ad));
-
-#ifdef DAEMON_SERVER_DEBUG
-			//cout << "Received from " << client_ad << ":" << client_addr.sin_port << "." << endl;
-#endif
-
-			//information to pass to the thread (temporal buffer address, client address and port in a req_inf structure that stores this information)
-			ha_thread.buffer = (unsigned char *) tmp_buffer;
-			memcpy(ha_thread.buffer, tmp_buffer, sizeof(tmp_buffer));
-			strcpy(ha_thread.client_IP, client_ad);
-			ha_thread.size = size_packet;
-			ha_thread.socket = sd_listen;
-			ha_thread.client_addr = &client_addr;
-
-			/*if(master_ret == 1) { //Only when there are retransmitters
-				std::string new_ip = "";
-				for (int i = ha_thread.size - 4; i < ha_thread.size; i++) {
-					new_ip = new_ip + std::to_string((int) ha_thread.buffer[i]);
-					if (i != ha_thread.size - 1)
-						new_ip = new_ip + ".";
-				}
-				strcpy(ha_thread.client_IP, new_ip.c_str());
-			}*/
-
-			//Print for debug
-			/*for (int j = 0; j < ha_thread.size; j++)
-        std::cout << (int) ha_thread.buffer[j] << " ";
-      std::cout << std::endl;*/
+        ssize_t size_packet = recvfrom(sd_listen, tmp_buffer.data(), tmp_buffer.size(), 0, (struct sockaddr*)&client_addr, &client_addr_size);
 
 
-      // Operate depending on the type of packet. 0-3 = IP
-      if (ha_thread.buffer[0] == (unsigned char)'c') {
-        //concatenated data from generic LDAs
-        //std::cout << "Concatenated packet" << endl;
-        _server_concat_queue.push_back(ha_thread); //Currently, I do not perform any action with this information
-      } else if (ha_thread.buffer[4] == (unsigned char)'g'){
-        // Generic TBON use
-        //std::cout << "Generic packet" << endl;
-        _server_queue.push_back(ha_thread);
-        pthread_cond_signal(&emptycond);
-        is_generic_use = true;
-      } else {
-        _queue_messages.push_back(ha_thread);
-        pthread_cond_signal(&emptycond);
-      }
-		}
-	}
+    	if (size_packet == -1) {
+            //std::cerr << "Error receiving packet." << std::endl;
+        } else {
+		    char client_ad[INET_ADDRSTRLEN];
+		    inet_ntop(AF_INET, &(client_addr.sin_addr), client_ad, sizeof(client_ad)); // Convertir IP a string
+			//char * aux = reinterpret_cast<char*>(tmp_buffer.data());
+        	//memcpy(ha_thread.buffer, aux, sizeof(aux));
 
-	return 0;
+        	//Esto copia directamente el vector
+        	ha_thread.buffer = tmp_buffer;
+        	//ha_thread.buffer = reinterpret_cast<unsigned char*>(tmp_buffer.data());
+        	//std::copy(tmp_buffer.begin(), tmp_buffer.end(), ha_thread.buffer);
+
+        	strcpy(ha_thread.client_IP, client_ad);
+            ha_thread.size = size_packet;
+            ha_thread.socket = sd_listen;
+            ha_thread.client_addr = &client_addr;
+
+        	//Print for debug
+        	for (int j = 0; j < ha_thread.size; j++)
+				std::cout << (int) ha_thread.buffer[j] << " ";
+			  std::cout << std::endl;
+
+            if (ha_thread.buffer[0] == static_cast<unsigned char>('c')) {
+                // Paquete concatenado
+                std::cout << "Concatenated packet" << std::endl;
+                _server_concat_queue.push_back(ha_thread); // Se agrega a la cola de paquetes concatenados
+            } else if (ha_thread.buffer[4] == static_cast<unsigned char>('g')) {
+                // Paquete genérico
+                std::cout << "Generic packet" << std::endl;
+                _server_queue.push_back(ha_thread);  // Se agrega a la cola de paquetes genéricos
+                pthread_cond_signal(&empty_cond);
+                is_generic_use = true;
+            } else {
+                // Paquete de monitorización
+                std::cout << "Mon packet" << std::endl;
+                _queue_messages.push_back(ha_thread); // Se agrega a la cola de mensajes de monitorización
+                pthread_cond_signal(&empty_cond);
+            }
+        }
+    }
+
+    return 0;
 }
 
 /**
@@ -435,20 +392,7 @@ void setTMRvalue(int val){
     tmr = val;
 }
 
-
-void prometheusWorker(){
-  std::thread th(managePrometheusServer);
-  th.detach();
-}
-
-void prometheusWorkerGeneric(){
-  std::thread th(managePrometheusServerGeneric);
-  th.detach();
-}
-
-
-/*    NODE AGGREGATOR FUNCTIONS    */
-
+/***********  NODE AGGREGATOR FUNCTIONS  **********/
 
 /**
  * Method to manage an UDP server. It contains two listeners, one
@@ -456,66 +400,64 @@ void prometheusWorkerGeneric(){
  * @return socket descriptor or -1 if error.
  */
 int manage_intermediate_server_udp() {
-  int sc = 0;
-  struct sockaddr_in client_addr;
-  socklen_t client_addr_size = sizeof(client_addr);
-  char client_ad[16];
-  unsigned char *tmp_buffer;
+	struct sockaddr_in client_addr;
+	socklen_t client_addr_size = sizeof(client_addr);
+	//unsigned char *tmp_buffer;
 
-  struct handle_args ha_thread;
-  pthread_attr_t attr;
-  pthread_t thid;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  pthread_mutex_init(&mut_thread, NULL);
-  pthread_cond_init(&cond_thread, NULL);
+	struct handle_args ha_thread;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	pthread_mutex_init(&mut_thread, nullptr);
+	pthread_cond_init(&cond_thread, nullptr);
 
-  tmp_buffer = (unsigned char *) calloc(MAX_PACKET_SIZE, sizeof(unsigned char));
+	std::vector<unsigned char> tmp_buffer(MAX_PACKET_SIZE);
 
-  while (1) {
+	while (true) {
+		ssize_t size_packet = recvfrom(sd_listen, tmp_buffer.data(), tmp_buffer.size(), 0, (struct sockaddr*)&client_addr, &client_addr_size);
 
-    ssize_t size_packet = recvfrom(sd_listen, tmp_buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *) &client_addr,
-                                   &client_addr_size);
-    /*Receive packet of max length.*/
-    if (size_packet == -1) {
-      //cerr << "Error receiving packet. " << endl;
-    } else {
-      //get ip address in a string
-      sprintf(client_ad, inet_ntoa(client_addr.sin_addr), sizeof(client_ad));
+		/*Receive packet of max length.*/
+		if (size_packet == -1) {
+			//cerr << "Error receiving packet. " << endl;
+		} else {
+			char client_ad[16];
+			//get ip address in a string
+			sprintf(client_ad, inet_ntoa(client_addr.sin_addr), sizeof(client_ad));
 
-      //information to pass to the thread (temporal buffer address, client address and port in a req_inf structure that stores this information)
-      ha_thread.buffer = tmp_buffer;
-      strcpy(ha_thread.client_IP, client_ad);
-      ha_thread.size = size_packet;
-      ha_thread.socket = sd_listen;
-      ha_thread.client_addr = &client_addr;
+			//information to pass to the thread (temporal buffer address, client address and port in a req_inf structure that stores this information)
+			//ha_thread.buffer = reinterpret_cast<unsigned char*>(tmp_buffer.data());
+			ha_thread.buffer = tmp_buffer;
+			strcpy(ha_thread.client_IP, client_ad);
+			ha_thread.size = size_packet;
+			ha_thread.socket = sd_listen;
+			ha_thread.client_addr = &client_addr;
 
-      if (ha_thread.buffer[0] == 0) { //Conf packet automatically send
-        /*Hw_conf hwconf;
-        obtain_conf_from_packet(&ha_thread.buffer[BTYPE_POS+1], &hwconf,ha_thread.client_IP);
-        insert_hw_conf(hwconf);
-        sendConfNow(ha_thread);*/
-      } else {
-        if (ha_thread.buffer[12] == 'g') {
-          //generic packet
-          _generic_queue.push_back(ha_thread);
-        } else {
-          //Print for debug
-          /*for (int j = 0; j < ha_thread.size; j++)
-            std::cout << (int) ha_thread.buffer[j] << " ";
-          std::cout << std::endl;*/
-          _global.push_back(ha_thread);
-        }
-      }
+			if (ha_thread.buffer[0] == 0) { //Conf packet automatically send
+				/*Hw_conf hwconf;
+				obtain_conf_from_packet(&ha_thread.buffer[BTYPE_POS+1], &hwconf,ha_thread.client_IP);
+				insert_hw_conf(hwconf);
+				sendConfNow(ha_thread);*/
+			} else {
+				if (ha_thread.buffer[12] == 'g') {
+					//generic packet
+					_generic_queue.push_back(ha_thread);
+				} else {
+					//Print for debug
+					/*for (int j = 0; j < ha_thread.size; j++)
+					std::cout << (int) ha_thread.buffer[j] << " ";
+					std::cout << std::endl;*/
+					_global.push_back(ha_thread);
+				}
+			}
 
-      //We need to aggregate data instead of rettransmiting the packages.
-      /*if (_global.size() == 10) {
-        sendAllMessages();
-      }*/
-    }
-  }
+			//We need to aggregate data instead of rettransmiting the packages.
+			/*if (_global.size() == 10) {
+				sendAllMessages();
+			}*/
+		}
+	}
 
-  return 0;
+	return 0;
 }
 
 
@@ -523,14 +465,14 @@ int manage_intermediate_server_udp() {
  * Thread to process the messages and aggregate the data and send.
  */
 void * intermediate_processor_agg() {
-  std::thread th(packetAggregation);
-  th.detach();
+	std::thread th(packetAggregation);
+	th.detach();
+	return nullptr;
 }
-
 
 /**
  * Send config to master without waiting.
- * @param mes
+ * @param ha
  */
 void sendConfNow(struct handle_args ha){//unsigned char * mes){
     int slen = sizeof(si_master);
@@ -541,354 +483,330 @@ void sendConfNow(struct handle_args ha){//unsigned char * mes){
         ha.size++;
     }
 
-    /*for(int j = 0; j < ha.size; j++)
-		    std::cout << (int) ha.buffer[j] << " ";*/
-
-    if (sendto(socket_desc_master, ha.buffer, /*MAX_PACKET_SIZE*/ha.size , 0 , (struct sockaddr *) &si_master, slen)==-1)
+    if (sendto(socket_desc_master, ha.buffer.data(), /*MAX_PACKET_SIZE*/ha.size , 0 , (struct sockaddr *) &si_master, slen)==-1)
     {
         std::cerr << " Error sending package. " << std::endl;
-        //exit(1);
     }
 
     //TMR with other two servers.
     if(socket_desc_bk1 != 0)
-        if (sendto(socket_desc_bk1, ha.buffer, /*MAX_PACKET_SIZE*/ha.size , 0 , (struct sockaddr *) &si_bk1, slen)==-1)
+        if (sendto(socket_desc_bk1, ha.buffer.data(), /*MAX_PACKET_SIZE*/ha.size , 0 , (struct sockaddr *) &si_bk1, slen)==-1)
         {
             std::cerr << " Error sending package. " << std::endl;
-            //exit(1);
         }
 
     if(socket_desc_bk2 != 0)
-        if (sendto(socket_desc_bk2, ha.buffer, /*MAX_PACKET_SIZE*/ha.size , 0 , (struct sockaddr *) &si_bk2, slen)==-1)
+        if (sendto(socket_desc_bk2, ha.buffer.data(), /*MAX_PACKET_SIZE*/ha.size , 0 , (struct sockaddr *) &si_bk2, slen)==-1)
         {
             std::cerr << " Error sending package. " << std::endl;
-            //exit(1);
         }
 }
 
 
 /**
  * Send all messages stored in _queue
+ * TODO: Review this functionality because it generates SIGSEV (not in debug mode)
  */
 void packetAggregation() {
-  //printf("Sending queue to master\n");
-  std::string ip, hostname;
-  get_addr(ip, hostname);
+	std::string ip, hostname;
+	get_addr(ip, hostname);
 
-  while (1) {
-    std::this_thread::sleep_for(std::chrono::seconds(5)); //sleep one time interval
-    packed_concat = (unsigned char*)calloc(1, 32768); //32KB of data
-    int concat_ptr = 0;
+	while (true) {
+		std::this_thread::sleep_for(std::chrono::seconds(5)); //sleep one time interva
+		std::vector<unsigned char> packed_concat(32768); 
+		int concat_ptr = 0;
 
-    /*This code is for Generic TBON*/
-    if (_generic_queue.size() != 0){
-      //Deserialize and aggregate (count number of metrics to create the vector
-      //Read data from byte 12 = 'g'
-      std::vector<struct handle_args> aux(_generic_queue);
-      _generic_queue.clear();
-      std::vector <unsigned long> values;
-      std::vector <string> keys;
+		/*This code is for Generic TBON*/
+		if (_generic_queue.size() != 0){
+			//Deserialize and aggregate (count number of metrics to create the vector
+			//Read data from byte 12 = 'g'
+			std::vector<struct handle_args> aux(_generic_queue); //aux(_generic_queue.begin(), _generic_queue.end());
+			_generic_queue.clear();
+			std::vector <unsigned long> values;
+			std::vector <string> keys;
 
-      for(auto packet : aux){
-        Hw_conf hw_conf;
-        int error = obtain_hw_conf(packet.client_IP, &hw_conf);
-        unsigned char *pointer_buff = &packet.buffer[BTYPE_POS];
-        Packed_sample *sp = new Packed_sample();//(hw_conf, 5000, 1, 50);
-        int counter = 12;
-        int i = 0;
+			for(auto& packet : aux){
+				Hw_conf hw_conf;
+				obtain_hw_conf(packet.client_IP, &hw_conf);
+				unsigned char *pointer_buff = &packet.buffer[BTYPE_POS];
+				
+				
+				/* Concatenate packet into a buffer: ip and data (remove conf) */
+				if(packet.buffer[0] != 'c') {
+					packed_concat[concat_ptr] = 'c'; // concat byte
+					//add ip
+					// Agregar IP
+					Packed_sample sp;
+					sp.ip_addr_s = ip;
+					auto ip_v = sp.parse_log(sp.ip_addr_s);
 
-        /* Concatenate packet into a buffer: ip and data (remove conf) */
-        if(packet.buffer[0] != 'c') {
-          packed_concat[concat_ptr] = 'c'; // concat byte
-          concat_ptr++;
-          //add ip
-          sp->ip_addr_s.assign(ip); //LDA IP
-          /* Packing ip address. Position:0-3 */
-          vector<string> ip_v = sp->parse_log(sp->ip_addr_s);
-          for (int i = 0; i < ip_v.size(); i++) {
-            packed_concat[concat_ptr] = (unsigned char) stoi(ip_v[i]);
-            concat_ptr++;
-          }
-          memcpy(&packed_concat[concat_ptr], &packet.buffer[13], packet.size - 12); //substract the 12 init bytes
-          concat_ptr += packet.size - 12;
-        } else {
-          // packet is already a concatenated packet (lda --> lda)
-          // in this case, concatenate directly without adding 'c' at the beginning
-          memcpy(&packed_concat[concat_ptr], &packet.buffer[0], packet.size); //concatenated packets do not have config bytes
-          concat_ptr += packet.size;
-        }
+					for (const auto& part : ip_v) {
+						packed_concat[concat_ptr++] = static_cast<unsigned char>(std::stoi(part));
+					}
+					
+					memcpy(&packed_concat[concat_ptr], &packet.buffer[13], packet.size - 12); //substract the 12 init bytes
+					concat_ptr += packet.size - 12;
+				} else {
+					// packet is already a concatenated packet (lda --> lda)
+					// in this case, concatenate directly without adding 'c' at the beginning
+					memcpy(&packed_concat[concat_ptr], &packet.buffer[0], packet.size); //concatenated packets do not have config bytes
+					concat_ptr += packet.size;
+				}
 
-        /*Obtain packet type*/
-        char type = (char) pointer_buff[counter];
-        counter += 1;
-        //get counters
-        for (counter; counter < packet.size && (counter + (64+4)) < packet.size; counter+=8){ // 4 bytes per counter add 64bytes per key
-          char *key = (char*)calloc(64,1);
-          memcpy(key, &pointer_buff[counter], 64);
-          string k(key);
-          //_generic_keys.push_back(k);
-          keys.push_back(k);
-          counter+=64;
+				/*Obtain packet type*/
+				int counter = 12;
+				counter += 1;
+				//get counters
+				while (counter < packet.size && (counter + 68) < packet.size) { // 64 bytes clave + 4 bytes valor
+					std::string key(reinterpret_cast<char*>(&pointer_buff[counter]), 64);
+					keys.push_back(key);
+					counter += 64;
 
-          //int val = (uint8_t(pointer_buff[counter]) << 24) | (uint8_t(pointer_buff[counter+1]) << 16) | (uint8_t(pointer_buff[counter+2]) << 8) | uint8_t(pointer_buff[counter+3]);
-          unsigned long val = (uint8_t(pointer_buff[counter]) << 56) | (uint8_t(pointer_buff[counter+1]) << 48) | (uint8_t(pointer_buff[counter+2]) << 40) |
-                       (uint8_t(pointer_buff[counter+3]) << 32) | (uint8_t(pointer_buff[counter+4]) << 24) | (uint8_t(pointer_buff[counter+5]) << 16) |
-                       (uint8_t(pointer_buff[counter+6]) << 8) | uint8_t(pointer_buff[counter+7]);
-          values.push_back(val);
-          free(key);
-        }
+					unsigned long val = (static_cast<uint64_t>(pointer_buff[counter]) << 56) |
+										(static_cast<uint64_t>(pointer_buff[counter+1]) << 48) |
+										(static_cast<uint64_t>(pointer_buff[counter+2]) << 40) |
+										(static_cast<uint64_t>(pointer_buff[counter+3]) << 32) |
+										(static_cast<uint64_t>(pointer_buff[counter+4]) << 24) |
+										(static_cast<uint64_t>(pointer_buff[counter+5]) << 16) |
+										(static_cast<uint64_t>(pointer_buff[counter+6]) << 8) |
+										static_cast<uint64_t>(pointer_buff[counter+7]);
 
-        /*update index of ips --> not for generic aggregations (because I do not know if the user wants the avg) */
-        /*std::string incoming_ip = "";
-        for (int i = 0; i < sizeof(packet.client_IP); i++) {
-          if (packet.client_IP[i] == '\0') break;
-          incoming_ip = incoming_ip + packet.client_IP[i];
-        }
-        if (std::find(ips_agg.begin(), ips_agg.end(), incoming_ip) == ips_agg.end()) {
-          ips_agg.push_back(incoming_ip);
-          registered_nodes_agg++;
-        }*/
+					values.push_back(val);
+					counter += 8;
+				}
 
-        /*Aggregate data -- fields have the same order*/
-        for (int i = 0; i < keys.size(); i++) {
-          auto aux = map_lda.find(keys[i]);
-          if(aux != map_lda.end())
-          {
-            // Aggregate
-            map_lda[keys[i]] += values[i];
-          } else {
-            // insert
-            map_lda[keys[i]] = values[i];
-          }
-        }
-      }
+				/*update index of ips --> not for generic aggregations (because I do not know if the user wants the avg) */
+				/*std::string incoming_ip = "";
+				for (int i = 0; i < sizeof(packet.client_IP); i++) {
+				  if (packet.client_IP[i] == '\0') break;
+				  incoming_ip = incoming_ip + packet.client_IP[i];
+				}
+				if (std::find(ips_agg.begin(), ips_agg.end(), incoming_ip) == ips_agg.end()) {
+				  ips_agg.push_back(incoming_ip);
+				  registered_nodes_agg++;
+				}*/
 
-      aux.clear();
-      ips_agg.clear();
-      registered_nodes_agg = 0;
-      //send aggregated data
-      Packed_sample *ps = new Packed_sample();
-      for(auto i : map_lda){
-        _generic_keys.push_back(i.first);
-        _generic_aggregation.push_back(i.second);
-      }
-      ps->Aggregation_sample_generic(ip, _generic_aggregation, _generic_keys);
-      ps->packed_ptr++;
+				/*Aggregate data -- fields have the same order*/
+				/*for (int i = 0; i < keys.size(); i++) {
+					auto aux = map_lda.find(keys[i]);
+					if(aux != map_lda.end())
+					{
+						// Aggregate
+						map_lda[keys[i]] += values[i];
+					} else {
+						// insert
+						map_lda[keys[i]] = values[i];
+					}
+				}*/
+				for (size_t i = 0; i < keys.size(); ++i) {
+					map_lda[keys[i]] += values[i];
+				}
+			}
 
-      int slen = sizeof(si_other);
-      if (sendto(socket_desc_master, ps->packed_buffer, ps->sample_size, 0, (struct sockaddr *) &si_master,
-                 slen) == -1) {
-        std::cerr << " Error sending agg package. " << std::endl;
-      }
+			//Clear data
+			aux.clear();
+			ips_agg.clear();
+			registered_nodes_agg = 0;
 
-      //todo: send the concatenation to another socket?
-      if (sendto(socket_desc_master, packed_concat, concat_ptr+1, 0, (struct sockaddr *) &si_master,
-                 slen) == -1) {
-        std::cerr << " Error sending concat package. " << std::endl;
-      }
-      //Print for debug
-      /*for (int i = 0; i < ps->sample_size; i++)
-        cout << (unsigned char)ps->packed_buffer[i] << " ";
-      cout << endl;
-      for (int i = 0; i < concat_ptr; i++)
-        cout << (unsigned char)packed_concat[i] << " ";
-      cout << endl;*/
+			auto ps = std::make_unique<Packed_sample>();
+			for (const auto& [key, value] : map_lda) {
+				_generic_keys.push_back(key);
+				_generic_aggregation.push_back(value);
+			}
+			ps->Aggregation_sample_generic(ip, _generic_aggregation, _generic_keys);
 
-      /*Reset aggregations after sending data*/
-      _generic_aggregation.clear();
-      _generic_keys.clear();
-      map_lda.clear();
-      free(packed_concat);
-      concat_ptr = 0;
-    }
-    else {
-      /*This code is for ADMIRE*/
-      if (_global.size() != 0) {
-        std::vector<struct handle_args> aux(_global);
-        _global.clear();
+			int slen = sizeof(si_other);
+			if (sendto(socket_desc_master, ps->packed_buffer, ps->sample_size, 0, (struct sockaddr *) &si_master,
+			         slen) == -1) {
+				cerr << " Error sending agg package. " << endl;
+			}
 
+			//todo: send the concatenation to another socket?
+			if (sendto(socket_desc_master, reinterpret_cast<char*>(packed_concat.data()), concat_ptr+1, 0,
+						(struct sockaddr *) &si_master, slen) == -1) {
+				cerr << " Error sending concat package. " << endl;
+			}
 
-        // read each packet to aggregate its metrics
-        for (auto packet : aux) {
-          /* Aggregate metrics per application:
-           * 1: Unpacket data
-           * 2: read app name
-           * 3: Insert into index if not registered previously, aggregate data otherwise
-           * 4: Generate new packet with the aggregated data (send avg)
-           */
+			//Print for debug
+			/*for (int i = 0; i < ps->sample_size; i++)
+			cout << (unsigned char)ps->packed_buffer[i] << " ";
+			cout << endl;
+			for (int i = 0; i < concat_ptr; i++)
+			cout << (unsigned char)packed_concat[i] << " ";
+			cout << endl;*/
 
-          /* Overwrite ip - Not in this version
-          std::vector<std::string> ip = split(i.client_IP, '.');
-          for (int j = 0; j < ip.size(); j++) {
-            i.buffer[i.size] = (unsigned char) stoi(ip[j]);
-            i.size++;
-          }*/
+			/*Reset aggregations after sending data*/
+			_generic_aggregation.clear();
+			_generic_keys.clear();
+			map_lda.clear();
+			concat_ptr = 0;
+		}
+		else {
+			/*This code is for ADMIRE*/
+			if (_global.size() != 0) {
+				std::vector<struct handle_args> aux(std::move(_global));
+				_global.clear();
 
-          /* Packet disassembly and aggregate metrics and generate new packet */
-          Hw_conf hw_conf;
-          int error = obtain_hw_conf(packet.client_IP, &hw_conf);
-          unsigned char *pointer_buff = &packet.buffer[BTYPE_POS];
-          Packed_sample sp(hw_conf, 5000, 1, 50);
-          int counter = 14;
-          int i = 0;
-          /*Obtain memory usage*/
-          int mem_usage_perc = (int) pointer_buff[counter];
+				// read each packet to aggregate its metrics
+				for (const auto& packet : aux) {
+					/* Aggregate metrics per application:
+					* 1: Unpacket data
+					* 2: read app name
+					* 3: Insert into index if not registered previously, aggregate data otherwise
+					* 4: Generate new packet with the aggregated data (send avg)
+					*/
 
-          vector<int> io_devices_w_perc(hw_conf.n_devices_io);
-          vector<int> io_devices_io_perc(hw_conf.n_devices_io);
-          vector<int> net_devices_speed(hw_conf.n_interfaces);
-          vector<int> net_devices_usage_perc(hw_conf.n_interfaces);
+					/* Overwrite ip - Not in this version
+					std::vector<std::string> ip = split(i.client_IP, '.');
+					for (int j = 0; j < ip.size(); j++) {
+					i.buffer[i.size] = (unsigned char) stoi(ip[j]);
+					i.size++;
+					}*/
 
-          counter += SIZE_PACKED_PERCENTAGE;
+					/* Packet disassembly and aggregate metrics and generate new packet */
+					Hw_conf hw_conf;
+					obtain_hw_conf(packet.client_IP, &hw_conf);
+					const unsigned char *pointer_buff = packet.buffer.data();//&packet.buffer[BTYPE_POS];
+					Packed_sample sp; //(hw_conf, 5000, 1, 50);
+					int counter = 14;
 
-          /*Obtain CPU_idle*/
-          int CPUidle_perc = (int) pointer_buff[counter];
-          counter += SIZE_PACKED_PERCENTAGE;
-          //counter +=  SIZE_PACKED_PERCENTAGE;
+					/*Obtain memory usage*/
+					int mem_usage_perc = (int) pointer_buff[counter];
+					counter += SIZE_PACKED_PERCENTAGE;
 
-          /*For each device, obtain w(%) and TIO(%)*/
-          for (i = 0; i < hw_conf.n_devices_io; ++i) {
-            io_devices_w_perc[i] = (int) pointer_buff[counter];
-            counter += SIZE_PACKED_PERCENTAGE;
-            io_devices_io_perc[i] = (int) pointer_buff[counter];
-            counter += SIZE_PACKED_PERCENTAGE;
-          }
-          /*For each network device, obtain speed and network usage*/
-          for (i = 0; i < hw_conf.n_interfaces; ++i) {
-            net_devices_speed[i] = (int) pointer_buff[counter];
-            counter += SIZE_PACKED_PERCENTAGE;
-            net_devices_usage_perc[i] = (int) pointer_buff[counter];
-            counter += SIZE_PACKED_PERCENTAGE;
+					/*Obtain CPU_idle*/
+					int CPUidle_perc = (int) pointer_buff[counter];
+					counter += SIZE_PACKED_PERCENTAGE;
 
-          }
+					/*Vectors for the I/O and network devices */
+					vector<int> io_devices_w_perc(hw_conf.n_devices_io);
+					vector<int> io_devices_io_perc(hw_conf.n_devices_io);
+					vector<int> net_devices_speed(hw_conf.n_interfaces);
+					vector<int> net_devices_usage_perc(hw_conf.n_interfaces);
 
-          int cache_ratio = (int) pointer_buff[counter];
-          counter += SIZE_PACKED_PERCENTAGE;
+					/*For each device, obtain w(%) and TIO(%)*/
+					for (int i = 0; i < hw_conf.n_devices_io; ++i) {
+						io_devices_w_perc[i] = static_cast<int>(pointer_buff[counter]);
+						counter += SIZE_PACKED_PERCENTAGE;
+						io_devices_io_perc[i] = static_cast<int>(pointer_buff[counter]);
+						counter += SIZE_PACKED_PERCENTAGE;
+					}
 
-          int cpu_stalled = (int) pointer_buff[counter];
-          counter += SIZE_PACKED_PERCENTAGE;
+					/*For each network device, obtain speed and network usage*/
+					for (int i = 0; i < hw_conf.n_interfaces; ++i) {
+						net_devices_speed[i] = static_cast<int>(pointer_buff[counter]);
+						counter += SIZE_PACKED_PERCENTAGE;
+						net_devices_usage_perc[i] = static_cast<int>(pointer_buff[counter]);
+						counter += SIZE_PACKED_PERCENTAGE;
+					}
 
-          /* JOBNAME FOR PROMETHEUS*/
-          char *in_jobname = (char *) malloc(8);
-          for (int i = 0; i < 8; i++) {
-            char c = (int) packet.buffer[counter];
-            in_jobname[i] = (char) c;
-            //printf("%c", c);
-            counter++;
-          }
-          std::string jobname(in_jobname);
+					/*Cache data*/
+					/*int cache_ratio = static_cast<int>(pointer_buff[counter]);
+					counter += SIZE_PACKED_PERCENTAGE;
+					int cpu_stalled = static_cast<int>(pointer_buff[counter]);
+					counter += SIZE_PACKED_PERCENTAGE;*/
 
-          /* Prometheus counters aggregated in this LDA*/
-          std::vector<int> counters;
-          counters.push_back(CPUidle_perc);
-          counters.push_back(mem_usage_perc);
-          //counters.push_back(n_io_devices);
-          int io_time = 0;
-          for (i = 0; i < hw_conf.n_devices_io; i++) {
-            io_time = (io_devices_io_perc[i] > io_time) ? io_devices_io_perc[i] : io_time;
-          }
-          counters.push_back(io_time);
-          int io_w = 0;
-          for (i = 0; i < hw_conf.n_devices_io; i++) {
-            io_w = (io_devices_w_perc[i] > io_w) ? io_devices_w_perc[i] : io_w;
-          }
-          counters.push_back(io_w);
-          //counters.push_back(n_net_devices);
-          //for(i = 0; i < n_net_devices; i++)
-          //  counters.push_back(net_devices_speed[i]);
-          int com_time = 0;
-          for (i = 0; i < hw_conf.n_interfaces; i++) {
-            com_time = (net_devices_usage_perc[i] > com_time) ? net_devices_usage_perc[i] : com_time;
-          }
-          counters.push_back(com_time);
-          /* Aggregation in LDA end */
+					/* JOBNAME FOR PROMETHEUS*/
+					std::string jobname(8, '\0');  // Inicializa una cadena de longitud 8 con caracteres nulos
+					for (int i = 0; i < 8; ++i) {
+						jobname[i] = static_cast<char>(packet.buffer[counter]);
+						++counter;
+					}
 
-          /*update index of ips*/
-          std::string incoming_ip = "";
-          for (int i = 0; i < sizeof(packet.client_IP); i++) {
-            if (packet.client_IP[i] == '\0') break;
-            incoming_ip = incoming_ip + packet.client_IP[i];
-          }
-          if (std::find(ips_agg.begin(), ips_agg.end(), incoming_ip) == ips_agg.end()) {
-            ips_agg.push_back(incoming_ip);
-            registered_nodes_agg++;
-          }
+					/* Prometheus counters aggregated in this LDA*/
+					std::vector<int> counters = {CPUidle_perc, mem_usage_perc};
+					// DISABLED BECAUSE OF THE SYSTEM --> todo: check this.
+					int io_time = 0; //*std::max_element(io_devices_io_perc.begin(), io_devices_io_perc.end());
+					int io_w = 0; //*std::max_element(io_devices_w_perc.begin(), io_devices_w_perc.end());
+					int com_time = 0; //*std::max_element(net_devices_usage_perc.begin(), net_devices_usage_perc.end());
+					counters.push_back(io_time);
+					counters.push_back(io_w);
+					counters.push_back(com_time);
+					
+					/* Aggregation in LDA end */
 
-          /*Aggregate directly*/
-          agg_metrics_agg[0] += CPUidle_perc;
-          agg_metrics_agg[1] += mem_usage_perc;
-          agg_metrics_agg[2] += io_time;
-          agg_metrics_agg[3] += io_w;
-          agg_metrics_agg[4] += com_time;
+					/*update index of ips*/
+					std::string incoming_ip = "";
+					for (int i = 0; i < sizeof(packet.client_IP); i++) {
+						if (packet.client_IP[i] == '\0') break;
+						incoming_ip = incoming_ip + packet.client_IP[i];
+					}
 
-          // Print for debug
-          auto time = std::chrono::system_clock::now();
-          std::time_t now = std::chrono::system_clock::to_time_t(time);
-          cout << packet.client_IP << " " << jobname << " " << std::ctime(&now) << " " << CPUidle_perc << " "
-               << mem_usage_perc << " " << io_time << " " << io_w
-               << " " << com_time << endl;
+					if (std::find(ips_agg.begin(), ips_agg.end(), incoming_ip) == ips_agg.end()) {
+						ips_agg.push_back(incoming_ip);
+						registered_nodes_agg++;
+					}
 
-        }
+					/*Aggregate directly*/
+					agg_metrics_agg[0] += CPUidle_perc;
+					agg_metrics_agg[1] += mem_usage_perc;
+					agg_metrics_agg[2] += io_time;
+					agg_metrics_agg[3] += io_w;
+					agg_metrics_agg[4] += com_time;
 
-        /*compute avgs*/
-        agg_metrics_agg[0] /= registered_nodes_agg;
-        agg_metrics_agg[1] /= registered_nodes_agg;
-        agg_metrics_agg[2] /= registered_nodes_agg;
-        agg_metrics_agg[3] /= registered_nodes_agg;
-        agg_metrics_agg[4] /= registered_nodes_agg;
+					// Print for debug
+					auto time = std::chrono::system_clock::now();
+					std::time_t now = std::chrono::system_clock::to_time_t(time);
+					cout << packet.client_IP << " " << jobname << " " << std::ctime(&now) << " CPU: " << CPUidle_perc << " Mem: "
+					   << mem_usage_perc << " IO(t): " << io_time << " IO(w): " << io_w
+					   << " Comm: " << com_time << endl;
+				}
 
-        /* reset agg structs */
-        aux.clear();
-        ips_agg.clear();
-        registered_nodes_agg = 0;
+				/*compute avgs*/
+				for (auto& metric : agg_metrics_agg) {
+					metric /= registered_nodes_agg;
+				}
 
+				/* reset agg structs */
+				aux.clear();
+				ips_agg.clear();
+				registered_nodes_agg = 0;
 
-        /* Create new packet and send it */
-        Packed_sample *ps = new Packed_sample();
-        ps->Aggregation_sample(ip, agg_metrics_agg[1], agg_metrics_agg[0], agg_metrics_agg[2], agg_metrics_agg[3],
-                               agg_metrics_agg[4]);
-        ps->packed_ptr++;
+				/* Create new packet and send it */
+				Packed_sample *ps = new Packed_sample();
+				ps->Aggregation_sample(ip, agg_metrics_agg[1], agg_metrics_agg[0], agg_metrics_agg[2], agg_metrics_agg[3],
+				                       agg_metrics_agg[4]);
+				ps->packed_ptr++;
 
-        int slen = sizeof(si_other);
-        if (sendto(socket_desc_master, ps->packed_buffer, ps->sample_size + 1, 0, (struct sockaddr *) &si_master,
-                   slen) == -1) {
-          std::cerr << " Error sending package. " << std::endl;
-        }
+				int slen = sizeof(si_other);
+				if (sendto(socket_desc_master, ps->packed_buffer, ps->sample_size + 1, 0, (struct sockaddr *) &si_master,
+				           slen) == -1) {
+					cerr << " Error sending package. " << endl;
+				}
 
-        /*Reset aggregations after sending data*/
-        agg_metrics_agg = {0, 0, 0, 0, 0};
-
-      }
-    }
-  }
+				/*Reset aggregations after sending data*/
+				std::fill(agg_metrics_agg.begin(), agg_metrics_agg.end(), 0);
+			}
+		}
+	}
 }
 
 
 
-/*   QUEUE MESSAGES FUNCTIONS    */
+/*******+*   QUEUE MESSAGES FUNCTIONS    *********/
 
 /**
  * Each processor thread gets data from the buffer and process it.
  */
 void worker_function(){
     //get the mutex to get data from buffer. If it is empty, we have to wait.
-    while(1) {
+    while(true) {
         pthread_mutex_lock(&proc_mut);
         while (queue_empty() == 1) {
-            pthread_cond_wait(&emptycond, &proc_mut);
+            pthread_cond_wait(&empty_cond, &proc_mut);
         }
 
         if(!is_generic_use) {
-          auto i = _queue_messages[0];
-          _queue_messages.erase(_queue_messages.begin());
-          pthread_mutex_unlock(&proc_mut);
-          run(&i);
+			auto i = _queue_messages[0];
+			_queue_messages.erase(_queue_messages.begin());
+			pthread_mutex_unlock(&proc_mut);
+			run(&i);
         } else {
-          // generic
-          auto i = _server_queue[0];
-          _server_queue.erase(_server_queue.begin());
-          pthread_mutex_unlock(&proc_mut);
-          run_generic(&i);
+			// generic
+			auto i = _server_queue[0];
+			_server_queue.erase(_server_queue.begin());
+			pthread_mutex_unlock(&proc_mut);
+			run_generic(&i);
         }
     }
 }
@@ -907,10 +825,11 @@ void * processor() {
     //V2: create threads that automatically process the information in the buffer.
     std::vector<std::thread> workers(nthreads);
     for (int i = 0; i < nthreads; i++){
+    	cout << "Processor worker " << i << " deployed." << endl;
         std::thread th(worker_function);
         th.detach();
     }
-    return nullptr;
+	return nullptr;
 }
 
 /**
@@ -918,7 +837,6 @@ void * processor() {
  * @return
  */
 int queue_empty(){
-
     if(is_generic_use)
       return (_server_queue.size() > 0) ? 0 : 1;
     else
@@ -926,8 +844,7 @@ int queue_empty(){
 }
 
 
-/*   HOTSPOTS FUNCTIONS   */
-
+/*********   HOTSPOTS FUNCTIONS  ********/
 /**
  * If in any sample, one of the measures are grater than these, a hot-spot notification will send.
  * @param mem
@@ -974,83 +891,50 @@ void hotspotNotification(std::string ip, int profile, char* mes){
         if (mutex_hot.try_lock()) {
             if (busy_hot == 0) {
                 busy_hot = 1;
-                auto hostname = (char *) calloc(NI_MAXHOST, sizeof(char));
-                int err = obtainHostNameByIP(ip.c_str(), hostname);
-                if (err == 0) {
-                    auto out = (char *) calloc(strlen(hostname) + 3 + strlen(mes/*.c_str()*/),
-                                               sizeof(char)); //ip + : + type + : + string
-                    int index = 0;
-                    strcpy(&out[index], hostname);
-                    index += strlen(hostname);
-                    out[index] = ':';
-                    index++;
-                    std::string aux = (profile == CPU_HOT) ? std::to_string(CPU_HOT) :
-                                      (profile == MEM_HOT) ? std::to_string(MEM_HOT) :
-                                      (profile == IO_HOT) ? std::to_string(IO_HOT) :
-                                      (profile == NET_HOT) ? std::to_string(NET_HOT) : std::to_string(CACHE_HOT);
-                    strcpy(&out[index], aux.c_str());
-                    index++;
-                    out[index] = ':';
-                    index++;
-                    strcpy(&out[index], mes);//.c_str());
-                    index += strlen(mes);//.c_str());
+                std::vector<char> hostname(NI_MAXHOST, '\0');
+                int err = obtainHostNameByIP(ip.c_str(), hostname.data());
 
-                    size_t slen = sizeof(si_other);
-                    ssize_t res = sendto(sd_flex_listen, out, strlen(out), 0, (struct sockaddr *) &si_other_flex, slen);
-                    if (res < 0)
-                        printf("Error sending packake\n");
+				std::string out_message;
 
-                    //to log
-                    ofstream myfile;
-                    myfile.open ("/tmp/log_monitor/log_v2.xt", ios::out | ios::app);
-                    myfile << "Hot-spot sended: " << hostname << ":" << mes << endl;
-                    myfile.close();
+				std::string aux = (profile == CPU_HOT) ? std::to_string(CPU_HOT) :
+								(profile == MEM_HOT) ? std::to_string(MEM_HOT) :
+								(profile == IO_HOT) ? std::to_string(IO_HOT) :
+								(profile == NET_HOT) ? std::to_string(NET_HOT) : std::to_string(CACHE_HOT);
 
+				if (err == 0) {
+					out_message = std::string(hostname.data()) + ":" + aux + ":" + mes;
+				} else {
+					out_message = ip + ":" + aux + ":" + mes;
+				}
 
-                    free(out);
-                } else {
-                    auto out = (char *) calloc(strlen(ip.c_str()) + 3 + strlen(mes/*.c_str()*/),
-                                               sizeof(char)); //ip + : + type + : + string
-                    int index = 0;
-                    strcpy(&out[index], ip.c_str());
-                    index += strlen(ip.c_str());
-                    out[index] = ':';
-                    index++;
-                    std::string aux = (profile == CPU_HOT) ? std::to_string(CPU_HOT) :
-                                      (profile == MEM_HOT) ? std::to_string(MEM_HOT) :
-                                      (profile == IO_HOT) ? std::to_string(IO_HOT) :
-                                      (profile == NET_HOT) ? std::to_string(NET_HOT) : std::to_string(CACHE_HOT);
-                    strcpy(&out[index], aux.c_str());
-                    index++;
-                    out[index] = ':';
-                    index++;
-                    strcpy(&out[index], mes);//.c_str());
-                    index += strlen(mes);//.c_str());
-
-                    size_t slen = sizeof(si_other);
-                    ssize_t res = sendto(sd_flex_listen, out, strlen(out), 0, (struct sockaddr *) &si_other_flex, slen);
-                    if (res < 0)
-                        printf("Error sending packake\n");
-
-                    //to log
-                    ofstream myfile;
-                    myfile.open ("/tmp/log_monitor/log_v2.xt", ios::out | ios::app);
-                    myfile << "Hot-spot sended: " << ip << ":" << mes << endl;
-                    myfile.close();
-
-                    free(out);
+				size_t slen = sizeof(si_other_flex);
+                ssize_t res = sendto(sd_flex_listen, out_message.c_str(), out_message.size(), 0,
+                                     (struct sockaddr*)&si_other_flex, slen);
+                if (res < 0) {
+                    std::cerr << "Error sending package\n";
                 }
-                free(hostname);
+
+                // Register log
+                std::ofstream myfile;
+                myfile.open("/tmp/log_monitor/log_v2.xt", std::ios::out | std::ios::app);
+                if (myfile.is_open()) {
+                    myfile << "Hot-spot sent: " << (err == 0 ? hostname.data() : ip) << ":" << mes << std::endl;
+                    myfile.close();
+                }
+
                 busy_hot = 0;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(5000));
             mutex_hot.unlock();
+        } else {
+            // Si el socket está ocupado, registrar en el log
+            ofstream myfile;
+            myfile.open("/tmp/log_monitor/log_v2.xt", std::ios::out | std::ios::app);
+            if (myfile.is_open()) {
+                myfile << "Hot-spot NOT sent (socket busy): " << ip << ":" << mes << endl;
+                myfile.close();
+            }
         }
-        //to log
-        ofstream myfile;
-        myfile.open ("/tmp/log_monitor/log_v2.xt", ios::out | ios::app);
-        myfile << "Hot-spot NOT-sended (socket busy): " << ip << ":" << mes << endl;
-        myfile.close();
     }
 }
 

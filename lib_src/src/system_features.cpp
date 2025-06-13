@@ -147,7 +147,7 @@ void log_concat_coretemps(vector<Temp_features> temp_features){
         for(; i < temp_features.size(); i++){
 	    header_s.append(" coretemp");
 	    header_s.append(to_string(i));
-	    header_s.append("{currentTemp(Cº) Temp(%)}");
+	    header_s.append("{currentTemp(Cº) Temp(%)} ");
 
         }
 }

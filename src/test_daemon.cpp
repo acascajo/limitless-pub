@@ -35,7 +35,7 @@ int main(int argc, char *argv[]){
   char*port_s = nullptr;
 
   if (argc != 5 ) {
-    cout << "Usage: (LDS) ./DaeMon -p <port dest> -s <ip dest>" << endl;
+    cout << "Usage: ./generic-sender -p <port dest> -s <ip dest>" << endl;
     exit(0);
   }
 

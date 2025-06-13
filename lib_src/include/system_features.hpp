@@ -37,7 +37,7 @@ typedef struct hw_conf {
 	int modo_bitmap;
 
 	/* Number of devices */
-	int n_devices_io;
+	int n_devices_io = 0;
 
 	/* Number of CPUs */
     	int n_cpu;
@@ -46,7 +46,7 @@ typedef struct hw_conf {
 	int n_cores;
 
 	/*NUmber of network interfaces*/
-	int n_interfaces;
+	int n_interfaces = 0;
 
 	/* Network interfaces */
 	vector<Net_dev> net_interfaces;

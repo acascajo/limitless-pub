@@ -6,8 +6,6 @@
 #include <string.h>
 #include <mutex>
 #include <network_data.hpp>
-#include <library.h>
-//#include "connector.h"
 #include "servidor_monitor.hpp"
 
 
@@ -22,7 +20,6 @@ std::mutex server_data_lock;
  * @return 0 if data insert is OK, -1 in case of error.
  */
 int save_config_into_database(Hw_conf hw_conf){
-
     /*Send to ES*/
     time_t rawtime;
     struct tm *timeinfo;
@@ -61,11 +58,8 @@ int log_info_server_data(Hw_conf hw_conf) {
     std::ofstream log_file_hardware(HW_LOG_FILE, std::ios_base::out | std::ios_base::app);
     //Puts info into buffer and returns the number of bytes.
     error = log_hw_conf(&hw_conf, buffer);
-    if (error < 1) {
-        cerr << "Error logging hardware info to file" << endl;
-    } else {
-        log_file_hardware.write((const char *) buffer, error);
-    }
+    if (error < 1) { cerr << "Error logging hardware info to file" << endl; }
+    else { log_file_hardware.write((const char *) buffer, error); }
 
     //save to database
     /*error += save_config_into_database(hw_conf);
@@ -81,36 +75,32 @@ int log_info_server_data(Hw_conf hw_conf) {
     @param[in] clientIP     String containing the IP of the client.
     @param[out] hw_conf     Pointer to a Hw_conf structure that will contain the result of the search.
     @returns 0 in case everything went ok, -1 in case of error or key was not found
-
 */
-
-
 int obtain_hw_conf(const std::string & clientIP, Hw_conf * hw_conf){
-    	int error = 0;
-    	//It locks the acces to shared data. TODO: To improve to shared reader only one writer scheme
-   	    std::unique_lock<std::mutex> lock(server_data_lock);
-    	std::unordered_map<std::string,Hw_conf>::const_iterator element = conf_table.find(clientIP);
+	int error = 0;
+	//It locks the acces to shared data. TODO: To improve to shared reader only one writer scheme
+	std::unique_lock<std::mutex> lock(server_data_lock);
+	std::unordered_map<std::string,Hw_conf>::const_iterator element = conf_table.find(clientIP);
 
-    	if(element == conf_table.end()){
-        	//key was not found, the configuration does not exist
-        	error = -1;
+	if(element == conf_table.end()){
+	    //key was not found, the configuration does not exist
+	    error = -1;
+	}else{
+	    *hw_conf = element->second;
+	}
 
-    	}else{
-        	*hw_conf = element->second;
-    	}
-
-    	return error; 
+	return error;
 }
 
 int insert_hw_conf( Hw_conf hw_conf){
-    	int error =0;
-    	std::string IP_client (hw_conf.ip_addr_s);
-    	//It locks the acces to shared data. TODO: To improve to shared reader only one writer scheme
-     	std::unique_lock<std::mutex> lock(server_data_lock);
-    	conf_table[IP_client] = hw_conf;
-    	//conf_table.insert(std::make_pair<std::string,Hw_conf> (IP_client,hw_conf));
-    	log_info_server_data(hw_conf);
-    	return error;
+	int error =0;
+	std::string IP_client (hw_conf.ip_addr_s);
+	//It locks the acces to shared data. TODO: To improve to shared reader only one writer scheme
+	std::unique_lock<std::mutex> lock(server_data_lock);
+	conf_table[IP_client] = hw_conf;
+	//conf_table.insert(std::make_pair<std::string,Hw_conf> (IP_client,hw_conf));
+	log_info_server_data(hw_conf);
+	return error;
 }
 
 int recovery_insert_hw_conf( Hw_conf hw_conf){
