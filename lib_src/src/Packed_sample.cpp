@@ -25,6 +25,9 @@ Packed_sample::Packed_sample(Hw_conf hwconf, unsigned int interval, int n_sample
     this->n_cpu = hwconf.n_cpu;
     this->n_cores = hwconf.n_cores;
     this->interval = interval;
+#if ENABLE_GPU
+    this->n_gpus = hwconf.n_gpu;
+#endif
     //this->n_siblings = hwconf.n_siblings;
     time(&(this->time_sample));
     samples_packed = 0;
@@ -50,6 +53,23 @@ Packed_sample::Packed_sample(Hw_conf hwconf, unsigned int interval, int n_sample
         net_avg.push_back(0);
     }
 
+#if ENABLE_GPU
+    for (int i = 0; i < n_gpus; i++) {
+        gpu_avg.push_back(0);
+    }
+
+    for (int i = 0; i < n_gpus; i++) {
+        Gpu_accu gpuaccu;
+
+        gpuaccu.memUsage = 0;
+        gpuaccu.gpuUsage = 0;
+        gpuaccu.temperature = 0;
+        gpuaccu.powerUsage = 0;
+
+        gpu_accu.push_back(gpuaccu);
+    }
+#endif
+
     for (int i = 0; i < n_cpu; i++) {
         pw_cpu.push_back(0);
     }
@@ -59,6 +79,11 @@ Packed_sample::~Packed_sample() {
     /* Clear vector */
     dev_avg.clear();
     net_avg.clear();
+
+#if ENABLE_GPU
+    gpu_avg.clear();
+    gpu_accu.clear();
+#endif
 
     /*
     vector<unsigned char>().swap(dev_avg);
@@ -185,6 +210,12 @@ void Packed_sample::pack_features() {
     packed_buffer[packed_ptr] = (unsigned char) n_interfaces;
     packed_ptr++;
 
+    #if ENABLE_GPU
+    /* Packing number of gpus. Position:X */
+    packed_buffer[packed_ptr] = (unsigned char) n_gpus;
+    packed_ptr++;
+    #endif
+
     /* Packing number of samples. Position:9 - Antes 11 no sé si aquí tenia algo mas ¿GPU?*/
     packed_buffer[packed_ptr] = (unsigned char) n_samples;
     packed_ptr++;
@@ -301,6 +332,37 @@ void Packed_sample::pack_sample_s(string sample){
         stringptr++;
     }
 #endif
+
+#if ENABLE_GPU
+    /* Packing gpu features: memory usage(%), gpu usage(%), temp(degrees Celsius) and powerUsage(Watts) for each gpu */
+    for (int i = 0; i < n_gpus; i++) {
+        packed_buffer[packed_ptr] = (unsigned char) stoi(svec[stringptr]);
+        packed_ptr++;
+        packed_bytes++;
+        sample_concat++;
+        stringptr++;
+
+        packed_buffer[packed_ptr] = (unsigned char) stoi(svec[stringptr]);
+        packed_ptr++;
+        packed_bytes++;
+        sample_concat++;
+        stringptr++;
+
+        packed_buffer[packed_ptr] = (unsigned char) stoi(svec[stringptr]);
+        packed_ptr++;
+        packed_bytes++;
+        sample_concat++;
+        stringptr++;
+
+        packed_buffer[packed_ptr] = (unsigned char) stoi(svec[stringptr]);
+        packed_ptr++;
+        packed_bytes++;
+        sample_concat++;
+        stringptr++;
+    }
+
+#endif
+
 
     samples_packed++;
 }

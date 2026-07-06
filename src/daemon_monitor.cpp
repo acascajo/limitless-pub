@@ -33,6 +33,10 @@
     #include "cliente_monitor.hpp"
 #endif
 
+#if ENABLE_GPU
+    #include "gpu_info.hpp"
+#endif
+
 //Influx link
 #include "influxdb.hpp"
 
@@ -491,6 +495,17 @@ int main(int argc, char *argv[]) {
         log_concat_interfaces(hw_features);
 #endif
 
+#if ENABLE_GPU
+    error = read_n_gpu(hw_features.gpus, hw_features.n_gpu, hw_features.GPU_DEVICES_COMPATIBLE, &hw_features.cuLib,
+                       &hw_features.nvmlLib);
+    //cout << "El numero de gpus es: " << hw_features.n_gpu << endl;
+    if (error == EGPU) {
+        hw_features.GPU_DEVICES_COMPATIBLE = CUDA_NO_COMPATIBLE;
+    }
+    else
+        log_concat_gpus(hw_features);
+#endif
+
     ps = new Packed_sample(hw_features, tinterval, n_samples, threshold);
 
     // Print on the screen with the output format of the data.
@@ -529,8 +544,8 @@ int main(int argc, char *argv[]) {
         //hw_features.cores.clear();
         read_cpu_stats(hw_features.cpus /*, hw_features.cores*/, hw_features.n_cpu, hw_features.n_cores);
 
-	//*************************** TEMP REACHED **********************
 #if ENABLE_PI
+    //*************************** TEMP REACHED **********************
 	get_temperature_pi();
 	get_power_pi();    
 #endif
@@ -541,26 +556,33 @@ int main(int argc, char *argv[]) {
 
 
 #if ENABLE_POWERCOLLECTOR
-        // *************************** POWER USAGE **************************
-        get_power(hw_features.pwcpu_features, hw_features.path_dir, hw_features.n_cpu);
+    // *************************** POWER USAGE **************************
+    get_power(hw_features.pwcpu_features, hw_features.path_dir, hw_features.n_cpu);
 #endif
 
 #if ENABLE_IOCOLLECTOR
-        // ************************** DEVICES USAGE ************************
-        read_devices_stats(hw_features.io_dev, tinterval);
+    // ************************** DEVICES USAGE ************************
+    read_devices_stats(hw_features.io_dev, tinterval);
 #endif
 
 #if ENABLE_NETWORKCOLLECTOR
-        // **************************** NET USAGE ******************************
-        read_net_stats(hw_features.net_interfaces);
+    // **************************** NET USAGE ******************************
+    read_net_stats(hw_features.net_interfaces);
+#endif
+
+#if ENABLE_GPU
+    // **************************** GPU USAGE ******************************
+    if (hw_features.GPU_DEVICES_COMPATIBLE == CUDA_COMPATIBLE) {
+        read_gpu_stats(hw_features.gpus, hw_features.cuLib, hw_features.nvmlLib);
+    }
 #endif
 
 #if ENABLE_IBA
-        //***************************** INFINIBAND ********************************
-        int xmitdata = 0, xmitwait = 0;
-        std::string hex_guid;
-        DoIBAstuff(hw_features.hostname,xmitdata, xmitwait, hex_guid);
-        //MakeIBADecision(ccti_increase, xmitdata, xmitwait); --> commented on not to interfere in testing phase
+    //***************************** INFINIBAND ********************************
+    int xmitdata = 0, xmitwait = 0;
+    std::string hex_guid;
+    DoIBAstuff(hw_features.hostname,xmitdata, xmitwait, hex_guid);
+    //MakeIBADecision(ccti_increase, xmitdata, xmitwait); --> commented on not to interfere in testing phase
 #endif
         
 #if ENABLE_INFLUX
