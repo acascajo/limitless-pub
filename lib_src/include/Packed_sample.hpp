@@ -64,6 +64,12 @@ public:
     std::vector<std::string> ip_v;
     int n_siblings;
 
+#if ENABLE_GPU
+    int n_gpus;
+    vector<unsigned char> gpu_avg;
+    vector<Gpu_accu> gpu_accu;
+#endif
+
     /* bit map variables */
     unique_ptr<unsigned char[]> bit_map;//FIXME: should pass this object always as ref so this pointer can work correctly
     int datos_cuartil;
