@@ -126,6 +126,12 @@ if(ENABLE_IBA)
         ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/src/redisdb.cpp
     )
     endif ()
+    if(ENABLE_GPU)
+        target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/src/gpu_info.cpp
+    )
+    endif ()
 else ()
     target_sources(${PROJECT_NAME}
             PRIVATE
@@ -150,6 +156,12 @@ else ()
         target_sources(${PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/src/redisdb.cpp
+    )
+    endif ()
+    if(ENABLE_GPU)
+        target_sources(${PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/src/gpu_info.cpp
     )
     endif ()
 endif ()
@@ -217,6 +229,7 @@ if(ENABLE_IBA)
             ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/include/iba_info.hpp
             ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/include/cliente_monitor_iba.hpp
             ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/include/cliente_monitor.hpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/include/gpu_info.hpp
     )
 else ()
     set(public_headers
@@ -236,6 +249,7 @@ else ()
             ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/include/server_data.hpp
             ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/include/servidor_monitor.hpp
             ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/include/redisdb.hpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/lib_src/include/gpu_info.hpp
     )
 endif ()
 
