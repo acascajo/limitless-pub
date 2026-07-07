@@ -22,42 +22,43 @@ using namespace std;
 #define DEVNAMELENGTH 128 
 
 void * loadCudaLibrary() {
-
-   	return dlopen ("libcuda.so", RTLD_NOW);
-
+   	void* h = dlopen("libcuda.so.1", RTLD_NOW | RTLD_LOCAL);
+    if (!h) {
+        fprintf(stderr, "dlopen libcuda.so.1 failed: %s\n", dlerror());
+    }
+    return h;
 }
 
 void * loadNVMLLibrary(){
-	return dlopen("libnvidia-ml.so",RTLD_NOW);
+	void* h = dlopen("libnvidia-ml.so.1", RTLD_NOW | RTLD_LOCAL);
+    if (!h) {
+        fprintf(stderr, "dlopen libnvidia-ml.so.1 failed: %s\n", dlerror());
+    }
+    return h;
 }
 
 void (*getProcAddress(void * lib, const char *name))(void){
-
-    	return (void (*)(void)) dlsym(lib,(const char *)name);
-
+    return (void (*)(void)) dlsym(lib,(const char *)name);
 }
 
 int freeLibrary(void *lib){
-   
-        return dlclose(lib);
-
+    return dlclose(lib);
 }
 
 void anyCheck(bool is_ok, const char *description, const char *function, const char *file, int line) {
-    	if (!is_ok) {
-        	fprintf(stderr,"Error: %s in %s at %s:%d\n", description, function, file, line);
-        	exit(EXIT_FAILURE);
-    	}
+	if (!is_ok) {
+		fprintf(stderr,"Error: %s in %s at %s:%d\n", description, function, file, line);
+		exit(EXIT_FAILURE);
+	}
 }
 
 int compatible_gpu(void* &cuLib){
-    	if ((cuLib = loadCudaLibrary()) == NULL){
+	if ((cuLib = loadCudaLibrary()) == NULL){
 
-            	return CUDA_NO_COMPATIBLE;
-    	}
+			return CUDA_NO_COMPATIBLE;
+	}
 
-    	return CUDA_COMPATIBLE;      
-
+	return CUDA_COMPATIBLE;      
 }
 
 
@@ -68,7 +69,6 @@ int read_gpu_stats(vector<Gpu_dev> & gpus, void* cuLib, void* nvmlLib){
 
 	clk::time_point t_1;
 	clk::time_point	t_2;
-
 
 	clk::duration difft;
 
@@ -120,10 +120,10 @@ int read_gpu_stats(vector<Gpu_dev> & gpus, void* cuLib, void* nvmlLib){
 
 	CUresult curesult;
 
-    	t_1 = clk::now();
+    t_1 = clk::now();
 
 	/* GPU devices CUDA compatible */                     
-    	for(int i = 0; i < gpus.size(); i++){
+	for(int i = 0; i < gpus.size(); i++){
 	
 		size_t gpu_mem_used = 0;
     		double gpu_percentage = 0.0;
@@ -179,9 +179,6 @@ int read_gpu_stats(vector<Gpu_dev> & gpus, void* cuLib, void* nvmlLib){
 			gpus[i].memUsage = _utilization.memory;				
 		}
 	
-		
-		
-	
 		gpu_mem_used = 0;
 
 		nvmlMemory_t memoryinfo;
@@ -221,7 +218,6 @@ int read_gpu_stats(vector<Gpu_dev> & gpus, void* cuLib, void* nvmlLib){
 		}else{
 			gpus[i].powerUsage = gpus[i].powerUsage / 1000.0;
 		}
-
 		
 	
 		#ifdef DEBUG_GPU
@@ -279,94 +275,93 @@ int construct_capability(unsigned char & capability, int major, int minor){
 */
 
 int read_n_gpu(vector<Gpu_dev> & gpus, int & n_gpu, int & dev_comp, void** cuLib, void** nvmlLib){
-    	struct cudaDeviceProp deviceProp;
-    
-    	cuInit_pt my_cuInit = NULL;
-    	cuDeviceGetCount_pt my_cuDeviceGetCount = NULL;
-    	cuDeviceComputeCapability_pt my_cuDeviceComputeCapability = NULL;
-    	cuDeviceGet_pt my_cuDeviceGet = NULL;
-    	cuDeviceGetName_pt my_cuDeviceGetName = NULL;
-    	nvmlInit_pt my_nvmlInit = NULL;
+	struct cudaDeviceProp deviceProp;
+
+	cuInit_pt my_cuInit = NULL;
+	cuDeviceGetCount_pt my_cuDeviceGetCount = NULL;
+	cuDeviceComputeCapability_pt my_cuDeviceComputeCapability = NULL;
+	cuDeviceGet_pt my_cuDeviceGet = NULL;
+	cuDeviceGetName_pt my_cuDeviceGetName = NULL;
+	nvmlInit_pt my_nvmlInit = NULL;
 	
 	nvmlDeviceGetMemoryInfo_pt mynvmlDeviceGetMemoryInfo = NULL;
 
 	CUdevice dev_;
 	n_gpu = 0;
-    	dev_comp = compatible_gpu(*cuLib);
+	dev_comp = compatible_gpu(*cuLib);
 	
-	if(cuLib == NULL){
+	if(*cuLib == NULL){
 		cout << "biblioteca no se ha cargado bien"<< endl;
 	}
 	
 	*nvmlLib = loadNVMLLibrary();
 	
-	if(nvmlLib == NULL){
+	if(*nvmlLib == NULL){
 		cout << "biblioteca nvml no se ha cargado bien" << endl;
 	}
 	
-    	if(dev_comp == CUDA_NO_COMPATIBLE){ // Cuda is not present in the system
-		
+	if(dev_comp == CUDA_NO_COMPATIBLE){ // Cuda is not present in the system
 		cout << "error cuda no compatible"<< endl;
 		n_gpu = 0;
-        	
 		return EGPU; 
-    	}else{ // Cuda present in the system
+	}else{ 
+		// Cuda present in the system
 
 		#ifdef DEBUG_GPU
 			cout <<"dentor del else" << endl;
 		#endif
 
-        	if ((my_cuInit = (cuInit_pt) getProcAddress(*cuLib, "cuInit")) == NULL){
-            		return 1; // sth is wrong with the library
-        	}
-		
+		if ((my_cuInit = (cuInit_pt) getProcAddress(*cuLib, "cuInit")) == NULL){
+				return 1; // sth is wrong with the library
+		}
+	
 		#ifdef DEBUG_GPU
 			cout <<"cuInit success" << endl;
 		#endif
-	
+
 		if ((my_nvmlInit = (nvmlInit_pt) getProcAddress(*nvmlLib, "nvmlInit")) == NULL){
-            		return 1; // sth is wrong with the library
-        	}
+				return 1; // sth is wrong with the library
+		}
 
 		#ifdef DEBUG_GPU
 			cout <<"before device get count" << endl;
 		#endif
 
-        	if ((my_cuDeviceGetCount = (cuDeviceGetCount_pt) getProcAddress(*cuLib, "cuDeviceGetCount")) == NULL){
-            		return 1; // sth is wrong with the library
-        	}        
-        
+		if ((my_cuDeviceGetCount = (cuDeviceGetCount_pt) getProcAddress(*cuLib, "cuDeviceGetCount")) == NULL){
+				return 1; // sth is wrong with the library
+		}        
+	
 		#ifdef DEBUG_GPU
 			cout << "device get cout success" << endl;    
-        	#endif
-	
+		#endif
+
 		if ((my_cuDeviceComputeCapability = (cuDeviceComputeCapability_pt) getProcAddress(*cuLib, "cuDeviceComputeCapability")) == NULL){
 			cout << " fallo en device compute capability" << endl;
-        	}
+		}
 
 		#ifdef DEBUG_GPU
 			cout << "device compute capability success" << endl;    
-        	#endif
-	
+		#endif
+
 		if ((my_cuDeviceGet = (cuDeviceGet_pt) getProcAddress(*cuLib, "cuDeviceGet")) == NULL){
 			cout << "fallo cuda device get " << endl;
-        	}
+		}
 
 		#ifdef DEBUG_GPU
 			cout << "cudeviceget success" << endl;    
-        	#endif
-	
+		#endif
+
 		if ((my_cuDeviceGetName = (cuDeviceGetName_pt) getProcAddress(*cuLib, "cuDeviceGetName")) == NULL){
 			cout << "fallo cuda device get " << endl;
-        	}
+		}
 
-        	int count = 0, i;
-	
-        	if(CUDA_SUCCESS != my_cuInit(0)){
-            		cout <<"fallo en CUDA init" << endl;
+		int count = 0, i;
+
+		if(CUDA_SUCCESS != my_cuInit(0)){
+				cout <<"fallo en CUDA init" << endl;
 			//return 1; // failed to initialize
 		}
-	
+
 		#ifdef DEBUG_GPU
 			cout << "init success" << endl;
 		#endif
@@ -375,47 +370,43 @@ int read_n_gpu(vector<Gpu_dev> & gpus, int & n_gpu, int & dev_comp, void** cuLib
 			cout << "fallo en el init de nvml" << endl;
 		}
 
-        	if (CUDA_SUCCESS != my_cuDeviceGetCount(&count)){
-    	
+		if (CUDA_SUCCESS != my_cuDeviceGetCount(&count)){
 			#ifdef DEBUG_GPU
 				cout << "fallo en el device get count" << endl;
 			#endif
-    
 		}
 
 		if ((mynvmlDeviceGetMemoryInfo = (nvmlDeviceGetMemoryInfo_pt) getProcAddress(*nvmlLib, "nvmlDeviceGetMemoryInfo")) == NULL){
-
-            		return 1; // sth is wrong with the library
-        	}
+			return 1; // sth is wrong with the library
+		}
 
 		nvmlDeviceGetHandleByIndex_pt mynvmlDeviceGetHandleByIndex = NULL;
-	
+
 		if ((mynvmlDeviceGetHandleByIndex = (nvmlDeviceGetHandleByIndex_pt) getProcAddress(*nvmlLib, "nvmlDeviceGetHandleByIndex")) == NULL){
-            		return 1; // sth is wrong with the library
-        	}
+			return 1; // sth is wrong with the library
+		}
 
 		#ifdef DEBUG_GPU
 			cout << "devicegetcount success" << endl;
 		#endif
 
-
 		int major = 0, minor = 0;
 		int error = 0;
-        
+	
 		for (i = 0; i < count; i++){
 			major = 0;
 			minor = 0;
 		
 			Gpu_dev gpudev;
-	    		char dev_name[DEVNAMELENGTH];
+			char dev_name[DEVNAMELENGTH];
 
 			my_cuDeviceComputeCapability(&major, &minor, i);
 		
 			construct_capability(gpudev.capability, major, minor);	    	
-	
+
 			my_cuDeviceGet(&dev_, i);            	
-	   
-            		my_cuDeviceGetName(dev_name, DEVNAMELENGTH, dev_); 
+		
+			my_cuDeviceGetName(dev_name, DEVNAMELENGTH, dev_); 
 
 			nvmlDevice_t device;
 		
@@ -424,23 +415,16 @@ int read_n_gpu(vector<Gpu_dev> & gpus, int & n_gpu, int & dev_comp, void** cuLib
 			nvmlMemory_t memoryinfo;
 			error = mynvmlDeviceGetMemoryInfo(device, &memoryinfo);
 
-        		gpudev.memTotal = memoryinfo.total / (1024*1024*1000);
-
-            		gpudev.dev_id = i;
-            		gpudev.model_name = dev_name;
-     			gpudev.cudacomp = 1;       
-            		gpus.push_back(gpudev);
+			gpudev.memTotal = memoryinfo.total / (1024*1024*1000);
+			gpudev.dev_id = i;
+			gpudev.model_name = dev_name;
+			gpudev.cudacomp = 1;       
+			gpus.push_back(gpudev);
 			n_gpu++;
+		}
+	}
 
-        	}
-
-	
-
-    	}
-    
-	
 	return EOK;
-
 }
 
 
