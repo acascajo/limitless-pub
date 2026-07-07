@@ -13,6 +13,10 @@
 #include "power_cpu_info.hpp"
 #include "common.hpp"
 
+#if ENABLE_GPU
+	#include "gpu_info.hpp"
+#endif
+
 #define HW_LOG_FILE "hw_conf_cluster.txt"
 #define MON_LOG_FILE "daemon_log_file.txt"
 
@@ -47,6 +51,17 @@ typedef struct hw_conf {
 
 	/*NUmber of network interfaces*/
 	int n_interfaces = 0;
+
+#if ENABLE_GPU
+	/* Number of GPUs */
+	int n_gpu;
+
+	/* GPU CUDA_compatible_devices stats */
+	int GPU_DEVICES_COMPATIBLE;
+	vector<Gpu_dev> gpus;
+	void * cuLib;
+	void * nvmlLib;
+#endif
 
 	/* Network interfaces */
 	vector<Net_dev> net_interfaces;
@@ -105,5 +120,9 @@ string get_log_line();
 void header_append(string toappend);
 string get_header_line();
 void log_concat_coretemps(vector<Temp_features> temp_features);
+
+#if ENABLE_GPU
+void log_concat_gpus(Hw_conf hw_features);
+#endif
 
 #endif
