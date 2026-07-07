@@ -245,6 +245,11 @@ include_directories("/home/acascajo/local/include")
 
 # DAEMON: Original
 add_executable(proc-sender src/daemon_monitor.cpp)
+if(ENABLE_GPU)
+    target_compile_definitions(proc-sender PRIVATE ENABLE_GPU=1)
+else ()
+    target_compile_definitions(proc-sender PRIVATE ENABLE_GPU=0)
+endif ()
 if(ENABLE_REDIS)
     target_compile_definitions(proc-sender PRIVATE ENABLE_REDIS=1)
 else ()
