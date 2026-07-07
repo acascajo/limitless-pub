@@ -44,7 +44,7 @@ typedef struct hw_conf {
 	int n_devices_io = 0;
 
 	/* Number of CPUs */
-    	int n_cpu;
+    int n_cpu;
 
 	/* Number of cores */
 	int n_cores;

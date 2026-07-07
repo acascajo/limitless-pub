@@ -23,6 +23,7 @@ void print_hw_conf(Hw_conf* hw_conf){
 	cout << "*****Total memory: " << hw_conf->mem_total << "GB *****" << endl;
 	cout << "*****Number of IO devices: " << hw_conf->n_devices_io << "*****" << endl;
 	cout << "*****Number of Network Interfaces: " << hw_conf->n_interfaces << "*****" << endl;
+#if ENABLE_GPU
     cout << "*****Number of GPU: " << hw_conf->n_gpu << "*****" << endl; 
     for(int i = 0; i < hw_conf->n_gpu; i++){
 		cout << "*****Compatible GPU: " << hw_conf->gpus[i].cudacomp << "*****" << endl; 
@@ -30,6 +31,7 @@ void print_hw_conf(Hw_conf* hw_conf){
 		cout << "*****Capability GPU: " << hw_conf->gpus[i].capability << "*****" << endl; 
 		
 	}
+#endif
    	cout << "*****Number of CPU for Temp: " << hw_conf->n_core_temps<< "*****" << endl;
 	
 	//cout << "*****Modo bitmap: " << hw_conf->modo_bitmap << "*****" << endl; 
