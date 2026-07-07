@@ -166,6 +166,36 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib_src>
         )
 
+# Build-option macros must be defined on the library target too.
+# PUBLIC makes them visible both while compiling gptbon and to executables/headers that consume it.
+target_compile_definitions(${PROJECT_NAME}
+        PUBLIC
+        ENABLE_IBA=$<BOOL:${ENABLE_IBA}>
+        ENABLE_GPU=$<BOOL:${ENABLE_GPU}>
+        ENABLE_REDIS=$<BOOL:${ENABLE_REDIS}>
+        ENABLE_INFLUX=$<BOOL:${ENABLE_INFLUX}>
+        ENABLE_POWERCOLLECTOR=$<BOOL:${ENABLE_POWERCOLLECTOR}>
+        ENABLE_IOCOLLECTOR=$<BOOL:${ENABLE_IOCOLLECTOR}>
+        ENABLE_NETWORKCOLLECTOR=$<BOOL:${ENABLE_NETWORKCOLLECTOR}>
+        ENABLE_PI=$<BOOL:${ENABLE_PI}>
+        ENABLE_AMD=$<BOOL:${ENABLE_AMD}>
+        )
+
+# Dependencies used by optional code should belong to the library interface.
+# That way every executable linking gptbon gets the same requirements.
+if(ENABLE_IBA)
+    target_link_libraries(${PROJECT_NAME} PUBLIC -libverbs)
+endif()
+
+if(ENABLE_REDIS)
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${HIREDIS_LIBRARY})
+endif()
+
+if(ENABLE_GPU)
+    target_include_directories(${PROJECT_NAME} PUBLIC ${CUDA_INCLUDE_DIRS})
+endif()
+
+
 # without its public headers won't get INSTALLED
 if(ENABLE_IBA)
     set(public_headers
@@ -245,6 +275,20 @@ include_directories("/home/acascajo/local/include")
 
 # DAEMON: Original
 add_executable(proc-sender src/daemon_monitor.cpp)
+target_link_libraries(proc-sender PUBLIC gptbon)
+
+# TBON generic sender
+add_executable(generic-sender src/test_daemon.cpp)
+target_link_libraries(generic-sender PUBLIC gptbon)
+
+# SERVER:
+add_executable(LDS src/test_server.cpp)
+#target_link_libraries(LDS PUBLIC gptbon InfluxData::InfluxDB)
+target_link_libraries(LDS PUBLIC gptbon)
+
+#[[ CODE SIMPLIFIED WITH FLAGS CONSTUCTIONS. THIS MAY BE OBSOLETE 
+# DAEMON: Original
+add_executable(proc-sender src/daemon_monitor.cpp)
 if(ENABLE_GPU)
     target_compile_definitions(proc-sender PRIVATE ENABLE_GPU=1)
 else ()
@@ -311,7 +355,7 @@ target_link_libraries(LDS PUBLIC gptbon )
 if(ENABLE_REDIS)
     target_link_libraries(LDS PUBLIC ${HIREDIS_LIBRARY})
 endif ()
-
+#]]
 
 # Install
 install(TARGETS gptbon DESTINATION "${main_lib_dest}")
