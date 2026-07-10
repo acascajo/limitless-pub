@@ -498,7 +498,7 @@ int main(int argc, char *argv[]) {
 #if ENABLE_GPU
     error = read_n_gpu(hw_features.gpus, hw_features.n_gpu, hw_features.GPU_DEVICES_COMPATIBLE, &hw_features.cuLib,
                        &hw_features.nvmlLib);
-    //cout << "El numero de gpus es: " << hw_features.n_gpu << endl;
+    cout << "El numero de gpus es: " << hw_features.n_gpu << endl;
     if (error == EGPU) {
         hw_features.GPU_DEVICES_COMPATIBLE = CUDA_NO_COMPATIBLE;
     }
@@ -606,18 +606,51 @@ int main(int argc, char *argv[]) {
 
 #if ENABLE_REDIS
             //Send to redis
-	    string aux; 
-	    stringstream ss(get_log_line());
-	    vector<string> v;
-	    while(getline(ss, aux, ' ')){
-	        v.push_back(aux);
-	    }
+            string aux; 
+            stringstream ss(get_log_line());
+            vector<string> vals, labels;
+            while(getline(ss, aux, ' ')){
+                vals.push_back(aux);
+            }
+            ss.clear();
+            ss.str(get_header_line());
+            while(getline(ss, aux, ' ')){
+                labels.push_back(aux);
+            }
+            
+            if (labels.size() != vals.size()) {
+                std::cerr << "Error: there are " << labels.size()
+                        << " labels and " << vals.size()
+                        << " values\n";
+            } else {
+                // Old method to build the redis command. Now it is auto-generated.
+                /*std::ostringstream redisCommand;
+                redisCommand << "HSET monitor:" << hw_features.hostname;
+
+                for (std::size_t i = 0; i < labels.size(); ++i) {
+                    redisCommand << ' ' << labels[i]
+                                << ' ' << vals[i];
+                }
+
+                // Additional values if required
+                redisCommand << " xmitdata " << xmitdata
+                            << " xmitwait " << xmitwait
+                            << " GUID " << hex_guid;
+
+                const std::string strcmd = redisCommand.str();
+                std::cout << strcmd << '\n';
+                const bool redisresult = SendToRedis_old(rcontext, strcmd);*/
+
+                const bool redisresult = SendToRedis(rcontext, hw_features.hostname, labels, vals);
+                if(redisresult != true) std::cerr << "Error sending data to Reids\n ";
+            }
+
+            // Old examples
             /*cout << "HSET monitor:" << hw_features.hostname << " cpu " << v[5] << " mem " << v[2] << " eno1Speed " << v[8] << " eno1bandwidth " << v[9] << 
-	    	" eno2Speed " << v[10] << " eno2bandwidth " << v[11] << " ibs3Speed " << v[12] << " ibs3bandwidth " << v[13] << endl;*/
-	    std::string strcmd = "HSET monitor:" + hw_features.hostname + " cpu " + v[5] + " mem " + v[2] + " eno1Speed " + v[8] + 
-		    " eno1bandwidth " + v[9] + " eno2Speed " + v[10] + " eno2bandwidth " + v[11] + " ibs3Speed " + v[12] + " ibs3bandwidth " + 
-		    v[13] + " xmitdata " + std::to_string(xmitdata) + " xmitwait " + std::to_string(xmitwait) + " GUID " + hex_guid;
-            bool redisresult = SendToRedis(rcontext, strcmd);
+                " eno2Speed " << v[10] << " eno2bandwidth " << v[11] << " ibs3Speed " << v[12] << " ibs3bandwidth " << v[13] << endl;*/
+            /*std::string strcmd = "HSET monitor:" + hw_features.hostname + " cpu " + vals[5] + " mem " + vals[2] + " eno1Speed " + vals[8] + 
+		    " eno1bandwidth " + vals[9] + " eno2Speed " + vals[10] + " eno2bandwidth " + vals[11] + " ibs3Speed " + vals[12] + " ibs3bandwidth " + 
+		    vals[13] + " xmitdata " + std::to_string(xmitdata) + " xmitwait " + std::to_string(xmitwait) + " GUID " + hex_guid;*/
 #endif
 
             //checkAlarm(ps);

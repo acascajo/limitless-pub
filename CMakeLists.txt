@@ -45,7 +45,7 @@ if(ENABLE_REDIS)
     message(STATUS "Building with REDIS support")
     ## Redis sources
     find_library(HIREDIS_LIBRARY hiredis
-	    HINTS "/home/acascajo/local/lib")
+	    HINTS "/home/acascajo/localfast/lib")
     # Check if hiredis library is found
     if(NOT HIREDIS_LIBRARY)
         message(STATUS "Hiredis library not found")
@@ -285,7 +285,7 @@ find_package (Threads)
 
 include_directories("include/")
 # In case there are dependencies installed locally
-include_directories("/home/acascajo/local/include")
+include_directories("/home/acascajo/localfast/include")
 
 # DAEMON: Original
 add_executable(proc-sender src/daemon_monitor.cpp)
