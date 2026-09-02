@@ -304,6 +304,302 @@ int close_socket(){
 	return error;	
 }
 
+void SendDataToInflux_v2(
+    std::string hostname, int xmitdata, int xmitwait, std::string db_addr){
+    int influxport = 8086;
+    std::string token =
+        "ZpJf7k3DPgVeWlK3acd3GTSM8YE75JLpelxhS_J-YKqoNoHrtAhH3WMsux438vulM_XZ7BIPjH9OfqMU1eERAA==";
+    std::string org = "uc3m";
+    std::string bucket = "test";
+
+    // Split por espacios
+    auto split_ws = [](const std::string& str){
+        std::vector<std::string> result;
+        std::istringstream iss(str);
+        std::string token;
+
+        while (iss >> token)
+            result.push_back(token);
+
+        return result;
+    };
+
+	// =====================================================
+    // Lambda para normalizar nombre para InfluxDB
+    //
+    // Ejemplos:
+    //
+    // MemUsage(%)       -> MemUsage_pct
+    // 0PWUsage(Joules)  -> 0PWUsage_Joules
+    // Gb/s              -> Gb_s
+    // temp(Cº)          -> temp_C
+    // =====================================================
+    auto normalize_name = [](std::string name){
+        std::string result;
+        for (size_t i = 0; i < name.size(); ++i){
+            char c = name[i];
+            if (c == '%')
+            {
+                result += "pct";
+            }
+            // Separadores/puntuación -> _
+            else if (
+                c == '(' ||
+                c == ')' ||
+                c == '/' ||
+                c == '\\' ||
+                c == '-' ||
+                c == '.' ||
+                c == ':' ||
+                c == '=' ||
+                c == ','){
+                if (!result.empty() && result.back() != '_')
+                    result += '_';
+            }
+            // ASCII normal
+            else if (
+                std::isalnum(static_cast<unsigned char>(c)) ||
+                c == '_'){
+                result += c;
+            }
+            // Caracteres especiales UTF-8 como º se ignoran.
+        }
+
+        // Eliminar _ inicial/final
+        while (!result.empty() && result.front() == '_')
+            result.erase(result.begin());
+
+        while (!result.empty() && result.back() == '_')
+            result.pop_back();
+
+        return result;
+    };
+
+    // Campos que no tienen valor en header y hay que ignorar
+    auto ignore_header_field = [](const std::string& field)
+    {
+        return field == "CUDAcomp";
+    };
+
+    std::string header = get_header_line();
+    std::string log = get_log_line();
+
+    std::vector<std::string> fields;
+    size_t pos = 0;
+    while (pos < header.size()){
+        // Saltar whitespace
+        while (pos < header.size() && std::isspace(static_cast<unsigned char>(header[pos]))){
+            ++pos;
+        }
+
+        if (pos >= header.size())
+            break;
+
+        size_t start = pos;
+
+        while (
+            pos < header.size() &&
+            !std::isspace(
+                static_cast<unsigned char>(header[pos])) &&
+            header[pos] != '{')
+        {
+            ++pos;
+        }
+
+        std::string main_name =
+            header.substr(start, pos - start);
+
+        if (
+            pos >= header.size() ||
+            header[pos] != '{')
+        {
+            if (!main_name.empty())
+            {
+                fields.push_back(
+                    normalize_name(main_name)
+                );
+            }
+
+            continue;
+        }
+
+        ++pos; // saltar {
+
+        size_t close = header.find('}', pos);
+        if (close == std::string::npos){
+            std::cerr << "ERROR: header invalido. Falta }\n";
+            return;
+        }
+
+        std::string inside = header.substr(pos, close - pos);
+        std::vector<std::string> subfields = split_ws(inside);
+
+        for (const auto& subfield : subfields){
+            // Campos que aparecen en header pero
+            // no tienen posición en el log.
+            if (ignore_header_field(subfield))
+                continue;
+
+            std::string complete_name = normalize_name(main_name) + "_" + normalize_name(subfield);
+            fields.push_back(complete_name);
+        }
+
+        pos = close + 1;
+    }
+
+    // Parsear log de datos
+    std::vector<std::string> values = split_ws(log);
+    if (fields.size() != values.size()){
+        std::cerr
+            << "ERROR INFLUX: numero de campos distinto "
+            << "del numero de valores\n";
+
+        std::cerr
+            << "Header fields: "
+            << fields.size()
+            << "\n";
+
+        std::cerr
+            << "Log values:    "
+            << values.size()
+            << "\n";
+
+
+        // Debug detallado
+        size_t max_size = std::max(fields.size(), values.size());
+
+        for (size_t i = 0; i < max_size; ++i){
+            std::cerr << i << " : ";
+
+            if (i < fields.size())
+                std::cerr << fields[i];
+            else
+                std::cerr << "<NO FIELD>";
+
+            std::cerr << " = ";
+
+            if (i < values.size())
+                std::cerr << values[i];
+            else
+                std::cerr << "<NO VALUE>";
+
+            std::cerr << "\n";
+        }
+
+        return;
+    }
+
+    // DEBUG 
+    /*
+    std::cout << "---- INFLUX DATA ----" << std::endl;
+    for (size_t i = 0; i < fields.size(); ++i){
+        std::cout
+            << i
+            << " : "
+            << fields[i]
+            << " = "
+            << values[i]
+            << std::endl;
+    }
+    */
+
+    // Timestamp
+    auto currtime = std::chrono::high_resolution_clock::now();
+    auto dur = currtime.time_since_epoch();
+    unsigned long long nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(dur).count();
+    
+    influxdb_cpp::server_info si(
+        db_addr,
+        influxport,
+        org,
+        token,
+        bucket
+    );
+
+    influxdb_cpp::builder builder;
+    auto& measurement = builder.meas(hostname);
+    size_t first_numeric_field = 0;
+
+    if (!fields.empty() && fields[0] == "IP_Addr"){
+        measurement.tag( "IP_Addr", values[0]);
+        first_numeric_field = 1;
+    }
+
+    if (first_numeric_field >= fields.size()){
+        std::cerr << "ERROR: no hay datos numericos para Influx\n";
+
+        return;
+    }
+
+
+    // =====================================================
+    // Primer field
+    // =====================================================
+
+    double first_value;
+
+    try
+    {
+        first_value =
+            std::stod(
+                values[first_numeric_field]
+            );
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr
+            << "ERROR convirtiendo "
+            << fields[first_numeric_field]
+            << " = "
+            << values[first_numeric_field]
+            << std::endl;
+
+        return;
+    }
+
+
+    auto& influx_fields =
+        measurement.field(
+            fields[first_numeric_field],
+            first_value
+        );
+
+    // Resto de campos
+    for (size_t i = first_numeric_field + 1; i < fields.size(); ++i){
+        try{
+            double value = std::stod(values[i]);
+            influx_fields.field(fields[i], value, 6);
+        }
+        catch (const std::exception& e){
+            std::cerr << "WARNING: valor no numerico: " << fields[i] << " = " << values[i] << "\n";
+        }
+    }
+
+	// Para IBA
+    influx_fields
+        .field("xmitdata", xmitdata)
+        .field("xmitwait", xmitwait);
+
+    influx_fields
+        .timestamp(nanoseconds)
+        .post_http(si);
+
+    std::string resp;
+    std::string query(
+        "from(bucket: \\\"" + bucket + "\\\")"
+        "|> range(start: -1h)"
+        "|>filter(fn: (r)=>r[\\\"_measurement\\\"] == \\\""
+        + hostname +
+        "\\\")"
+        "|>filter(fn: (r) => r[\\\"_field\\\"] == \\\"xmitwait\\\")"
+    );
+
+    influxdb_cpp::flux_query(
+        resp,
+        query,
+        si
+    );
+}
 
 void SendDataToInflux(string hostname, int xmitdata, int xmitwait, std::string db_addr) {
 	// ************* INFLUX INIT *******
@@ -321,13 +617,98 @@ void SendDataToInflux(string hostname, int xmitdata, int xmitwait, std::string d
 	// tokenize log and get data --> indexes 5 and 2
 	int cpu = std::stoi(split(get_log_line(), ' ')[5]);
 	int mem = std::stoi(split(get_log_line(), ' ')[2]);
+	int temp0 = std::stoi(split(get_log_line(), ' ')[6]);
+	int temp1 = std::stoi(split(get_log_line(), ' ')[7]);
+	
+	int gpu0_mem_usage = std::stoi(split(get_log_line(), ' ')[8]);
+	int gpu0_cpu_usage = std::stoi(split(get_log_line(), ' ')[9]);
+	int gpu0_temp = std::stoi(split(get_log_line(), ' ')[10]);
+	int gpu0_watts = std::stoi(split(get_log_line(), ' ')[11]);
+
+	int gpu1_mem_usage = std::stoi(split(get_log_line(), ' ')[12]);
+	int gpu1_cpu_usage = std::stoi(split(get_log_line(), ' ')[13]);
+	int gpu1_temp = std::stoi(split(get_log_line(), ' ')[13]);
+	int gpu1_watts = std::stoi(split(get_log_line(), ' ')[15]);
+
+	int gpu2_mem_usage = std::stoi(split(get_log_line(), ' ')[16]);
+	int gpu2_cpu_usage = std::stoi(split(get_log_line(), ' ')[17]);
+	int gpu2_temp = std::stoi(split(get_log_line(), ' ')[18]);
+	int gpu2_watts = std::stoi(split(get_log_line(), ' ')[19]);
+
+	int gpu3_mem_usage = std::stoi(split(get_log_line(), ' ')[20]);
+	int gpu3_cpu_usage = std::stoi(split(get_log_line(), ' ')[21]);
+	int gpu3_temp = std::stoi(split(get_log_line(), ' ')[22]);
+	int gpu3_watts = std::stoi(split(get_log_line(), ' ')[23]);
+
+	int gpu4_mem_usage = std::stoi(split(get_log_line(), ' ')[24]);
+	int gpu4_cpu_usage = std::stoi(split(get_log_line(), ' ')[25]);
+	int gpu4_temp = std::stoi(split(get_log_line(), ' ')[26]);
+	int gpu4_watts = std::stoi(split(get_log_line(), ' ')[27]);
+
+	int gpu5_mem_usage = std::stoi(split(get_log_line(), ' ')[28]);
+	int gpu5_cpu_usage = std::stoi(split(get_log_line(), ' ')[29]);
+	int gpu5_temp = std::stoi(split(get_log_line(), ' ')[30]);
+	int gpu5_watts = std::stoi(split(get_log_line(), ' ')[31]);
+
+	int gpu6_mem_usage = std::stoi(split(get_log_line(), ' ')[32]);
+	int gpu6_cpu_usage = std::stoi(split(get_log_line(), ' ')[33]);
+	int gpu6_temp = std::stoi(split(get_log_line(), ' ')[34]);
+	int gpu6_watts = std::stoi(split(get_log_line(), ' ')[35]);
+
+	int gpu7_mem_usage = std::stoi(split(get_log_line(), ' ')[36]);
+	int gpu7_cpu_usage = std::stoi(split(get_log_line(), ' ')[37]);
+	int gpu7_temp = std::stoi(split(get_log_line(), ' ')[38]);
+	int gpu7_watts = std::stoi(split(get_log_line(), ' ')[39]);
+
+	int gpu8_mem_usage = std::stoi(split(get_log_line(), ' ')[40]);
+	int gpu8_cpu_usage = std::stoi(split(get_log_line(), ' ')[41]);
+	int gpu8_temp = std::stoi(split(get_log_line(), ' ')[42]);
+	int gpu8_watts = std::stoi(split(get_log_line(), ' ')[43]);
 
 	influxdb_cpp::builder()
 		.meas(hostname)
 		.field("cpu", cpu)
 		.field("mem", mem)
-		.field("xmitdata", xmitdata)
-		.field("xmitwait", xmitwait)
+		//.field("xmitdata", xmitdata)
+		//.field("xmitwait", xmitwait)
+		.field("temp0", temp0)
+		.field("temp1", temp1)
+		.field("gpu0_mem_usage", gpu0_mem_usage)
+		.field("gpu0_cpu_usage", gpu0_cpu_usage)
+		.field("gpu0_temp", gpu0_temp)
+		.field("gpu0_watts", gpu0_watts)
+		.field("gpu1_mem_usage", gpu1_mem_usage)
+		.field("gpu1_cpu_usage", gpu1_cpu_usage)
+		.field("gpu1_temp", gpu1_temp)
+		.field("gpu1_watts", gpu1_watts)
+		.field("gpu2_mem_usage", gpu2_mem_usage)
+		.field("gpu2_cpu_usage", gpu2_cpu_usage)
+		.field("gpu2_temp", gpu2_temp)
+		.field("gpu2_watts", gpu2_watts)
+		.field("gpu3_mem_usage", gpu3_mem_usage)
+		.field("gpu3_cpu_usage", gpu3_cpu_usage)
+		.field("gpu3_temp", gpu3_temp)
+		.field("gpu3_watts", gpu3_watts)
+		.field("gpu4_mem_usage", gpu4_mem_usage)
+		.field("gpu4_cpu_usage", gpu4_cpu_usage)
+		.field("gpu4_temp", gpu4_temp)
+		.field("gpu4_watts", gpu4_watts)
+		.field("gpu5_mem_usage", gpu5_mem_usage)
+		.field("gpu5_cpu_usage", gpu5_cpu_usage)
+		.field("gpu5_temp", gpu5_temp)
+		.field("gpu5_watts", gpu5_watts)
+		.field("gpu6_mem_usage", gpu6_mem_usage)
+		.field("gpu6_cpu_usage", gpu6_cpu_usage)
+		.field("gpu6_temp", gpu6_temp)
+		.field("gpu6_watts", gpu6_watts)
+		.field("gpu7_mem_usage", gpu7_mem_usage)
+		.field("gpu7_cpu_usage", gpu7_cpu_usage)
+		.field("gpu7_temp", gpu7_temp)
+		.field("gpu7_watts", gpu7_watts)
+		.field("gpu8_mem_usage", gpu8_mem_usage)
+		.field("gpu8_cpu_usage", gpu8_cpu_usage)
+		.field("gpu8_temp", gpu8_temp)
+		.field("gpu8_watts", gpu8_watts)
 		.timestamp(nanoseconds)
 		.post_http(si);
 
