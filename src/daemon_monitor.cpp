@@ -577,9 +577,9 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
+    int xmitdata = 0, xmitwait = 0;
 #if ENABLE_IBA
     //***************************** INFINIBAND ********************************
-    int xmitdata = 0, xmitwait = 0;
     std::string hex_guid;
     DoIBAstuff(hw_features.hostname,xmitdata, xmitwait, hex_guid);
     //MakeIBADecision(ccti_increase, xmitdata, xmitwait); --> commented on not to interfere in testing phase
