@@ -6,6 +6,7 @@
 //bool InitializeRedisConnection(redisContext* c, std::string dbaddress);
 //bool InitializeRedisConnection(std::string dbaddress);
 redisContext* InitializeRedisConnection(std::string dbaddress);
+redisContext* InitializeRedisConnection_metricai(const std::string& redis_host, const std::string& redis_password, int redis_port);
 
 bool SendToRedis_old(redisContext* c, std::string strcmd);
 //bool SendToRedis(std::string strcmd);

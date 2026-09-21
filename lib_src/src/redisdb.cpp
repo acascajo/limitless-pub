@@ -9,6 +9,68 @@ using namespace std;
 
 //redisContext* c;
 
+redisContext* InitializeRedisConnection_metricai(
+    const std::string& redis_host,
+    const std::string& redis_password,
+    int redis_port)
+{
+    redisContext* context =
+        redisConnect(redis_host.c_str(), redis_port);
+
+    if (context == nullptr || context->err) {
+        if (context != nullptr) {
+            std::cerr << "Redis connection error: "
+                      << context->errstr << '\n';
+            redisFree(context);
+        } else {
+            std::cerr << "Redis error: cannot allocate context\n";
+        }
+
+        return nullptr;
+    }
+
+    redisReply* auth_reply = static_cast<redisReply*>(
+        redisCommand(
+            context,
+            "AUTH default %s",
+            redis_password.c_str()
+        )
+    );
+
+    if (auth_reply == nullptr ||
+        auth_reply->type == REDIS_REPLY_ERROR) {
+        std::cerr << "Redis authentication failed\n";
+
+        if (auth_reply != nullptr)
+            freeReplyObject(auth_reply);
+
+        redisFree(context);
+        return nullptr;
+    }
+
+    freeReplyObject(auth_reply);
+
+    redisReply* ping_reply = static_cast<redisReply*>(
+        redisCommand(context, "PING")
+    );
+
+    if (ping_reply == nullptr ||
+        ping_reply->type == REDIS_REPLY_ERROR) {
+        std::cerr << "Redis PING failed\n";
+
+        if (ping_reply != nullptr)
+            freeReplyObject(ping_reply);
+
+        redisFree(context);
+        return nullptr;
+    }
+
+    std::cout << "Redis connected and authenticated\n";
+
+    freeReplyObject(ping_reply);
+    return context;
+}
+
 //bool InitializeRedisConnection(redisContext* c, std::string dbaddress){
 redisContext* InitializeRedisConnection(std::string dbaddress){
     redisContext* c = redisConnect(dbaddress.c_str(), 6379); //localhost for debug
@@ -78,7 +140,7 @@ bool SendToRedis(redisContext* context, const std::string& hostname, const std::
     arguments.reserve(2 + labels.size() * 2);
 
     arguments.emplace_back("HSET");
-    arguments.emplace_back("monitor:" + hostname);
+    arguments.emplace_back("monitor:node:" + hostname);
 
     for (std::size_t i = 0; i < labels.size(); ++i) {
         if (labels[i].empty()) {

@@ -443,11 +443,7 @@ int main(int argc, char *argv[]) {
     setup_signal_term();
 
     // Read number of processor
-#if ENABLE_PI
     error = read_n_processors_pi(hw_features.cpus, hw_features.n_cpu, hw_features.n_cores);
-#else
-    error = read_n_processors(hw_features.cpus, hw_features.n_cpu, hw_features.n_cores);//, hw_features.n_siblings);
-#endif
 
     if (error != EOK) {
         cerr << "Error reading processors: " << error << endl;
@@ -550,6 +546,8 @@ int main(int argc, char *argv[]) {
 	get_power_pi();    
 #endif
 
+
+
 #if ENABLE_AMD
     get_temperature_amd();
 #endif
@@ -559,6 +557,7 @@ int main(int argc, char *argv[]) {
     // *************************** POWER USAGE **************************
     get_power(hw_features.pwcpu_features, hw_features.path_dir, hw_features.n_cpu);
 #endif
+
 
 #if ENABLE_IOCOLLECTOR
     // ************************** DEVICES USAGE ************************
@@ -586,7 +585,7 @@ int main(int argc, char *argv[]) {
 #endif
         
 #if ENABLE_INFLUX
-	SendDataToInflux(hw_features.hostname, xmitdata, xmitwait, es_addr);
+	/*SendDataToInflux_v2(hw_features.hostname, xmitdata, xmitwait, es_addr);*/
 #endif
 
         // ************************ PACKET TRANSFER ***********************
@@ -615,7 +614,8 @@ int main(int argc, char *argv[]) {
             ss.clear();
             ss.str(get_header_line());
             while(getline(ss, aux, ' ')){
-                labels.push_back(aux);
+                if(aux != "")
+                    labels.push_back(aux);
             }
             
             if (labels.size() != vals.size()) {

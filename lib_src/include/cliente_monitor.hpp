@@ -55,6 +55,8 @@ int close_socket();
 * Sends data collected from IBA to InfluxDB
 */
 void SendDataToInflux(string hostname, int xmitdata, int xmitwait, std::string db_addr);
-
+void SendDataToInflux_v2(string hostname, int xmitdata, int xmitwait, std::string db_addr);
+void SendDataToMetricAIInflux(const std::string& hostname, int xmitdata, int xmitwait,
+    const std::string& db_addr);
 
 #endif

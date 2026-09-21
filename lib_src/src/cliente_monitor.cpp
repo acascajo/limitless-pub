@@ -304,6 +304,198 @@ int close_socket(){
 	return error;	
 }
 
+
+void SendDataToMetricAIInflux(const std::string& hostname, int xmitdata, int xmitwait,
+    const std::string& db_addr)
+{
+    const int influxport = 8086;
+    const std::string org = "metric_ai";
+    const std::string bucket = "metrics";
+    const std::string measurement_name = "metrics";
+
+    const char* token_env = std::getenv("METRIC_INFLUX_TOKEN");
+    if (token_env == nullptr || std::string(token_env).empty()) {
+        std::cerr << "ERROR: falta METRIC_INFLUX_TOKEN\n";
+        return;
+    }
+
+    const std::string token(token_env);
+
+    auto split_ws = [](const std::string& value) {
+        std::vector<std::string> result;
+        std::istringstream stream(value);
+        std::string item;
+
+        while (stream >> item)
+            result.push_back(item);
+
+        return result;
+    };
+
+    auto normalize_name = [](std::string name) {
+        std::string result;
+
+        for (char c : name) {
+            if (c == '%') {
+                result += "pct";
+            } else if (
+                c == '(' || c == ')' || c == '/' || c == '\\' ||
+                c == '-' || c == '.' || c == ':' || c == '=' || c == ',') {
+                if (!result.empty() && result.back() != '_')
+                    result += '_';
+            } else if (
+                std::isalnum(static_cast<unsigned char>(c)) || c == '_') {
+                result += c;
+            }
+        }
+
+        while (!result.empty() && result.front() == '_')
+            result.erase(result.begin());
+
+        while (!result.empty() && result.back() == '_')
+            result.pop_back();
+
+        return result;
+    };
+
+    auto ignore_header_field = [](const std::string& field) {
+        return field == "CUDAcomp";
+    };
+
+    const std::string header = get_header_line();
+    const std::string log = get_log_line();
+
+    std::vector<std::string> fields;
+    size_t pos = 0;
+
+    while (pos < header.size()) {
+        while (
+            pos < header.size() &&
+            std::isspace(static_cast<unsigned char>(header[pos]))) {
+            ++pos;
+        }
+
+        if (pos >= header.size())
+            break;
+
+        const size_t start = pos;
+
+        while (
+            pos < header.size() &&
+            !std::isspace(static_cast<unsigned char>(header[pos])) &&
+            header[pos] != '{') {
+            ++pos;
+        }
+
+        const std::string main_name =
+            header.substr(start, pos - start);
+
+        if (pos >= header.size() || header[pos] != '{') {
+            if (!main_name.empty())
+                fields.push_back(normalize_name(main_name));
+
+            continue;
+        }
+
+        ++pos;
+
+        const size_t close = header.find('}', pos);
+        if (close == std::string::npos) {
+            std::cerr << "ERROR: header invalido. Falta '}'\n";
+            return;
+        }
+
+        const std::string inside = header.substr(pos, close - pos);
+        const std::vector<std::string> subfields = split_ws(inside);
+
+        for (const auto& subfield : subfields) {
+            if (ignore_header_field(subfield))
+                continue;
+
+            const std::string main = normalize_name(main_name);
+            const std::string sub = normalize_name(subfield);
+
+            if (!main.empty() && !sub.empty())
+                fields.push_back(main + "_" + sub);
+        }
+
+        pos = close + 1;
+    }
+
+    const std::vector<std::string> values = split_ws(log);
+
+    if (fields.size() != values.size()) {
+        std::cerr << "ERROR INFLUX: numero de campos distinto "
+                  << "del numero de valores. Fields=" << fields.size()
+                  << ", values=" << values.size() << '\n';
+        return;
+    }
+
+    const auto now = std::chrono::system_clock::now();
+    const auto timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        now.time_since_epoch()
+    ).count();
+
+    influxdb_cpp::server_info server(
+        db_addr,
+        influxport,
+        org,
+        token,
+        bucket
+    );
+
+    influxdb_cpp::builder builder;
+
+    /* METRIC-AI espera measurement=metrics y tag entity=<nodo>.*/
+    auto& measurement = builder.meas(measurement_name);
+    measurement.tag("entity", hostname);
+
+    size_t first_numeric_field = 0;
+
+    if (!fields.empty() && fields[0] == "IP_Addr") {
+        measurement.tag("IP_Addr", values[0]);
+        first_numeric_field = 1;
+    }
+
+    if (first_numeric_field >= fields.size()) {
+        std::cerr << "ERROR: no hay datos numericos para Influx\n";
+        return;
+    }
+
+    double first_value;
+
+    try {
+        first_value = std::stod(values[first_numeric_field]);
+    } catch (const std::exception&) {
+        std::cerr << "ERROR convirtiendo "
+                  << fields[first_numeric_field]
+                  << " = "
+                  << values[first_numeric_field] << '\n';
+        return;
+    }
+
+    auto& influx_fields = measurement.field(
+        fields[first_numeric_field],
+        first_value
+    );
+
+    for (size_t i = first_numeric_field + 1; i < fields.size(); ++i) {
+        try {
+            const double value = std::stod(values[i]);
+            influx_fields.field(fields[i], value, 6);
+        } catch (const std::exception&) {
+            std::cerr << "WARNING: valor no numerico: "
+                      << fields[i] << " = " << values[i] << '\n';
+        }
+    }
+
+    influx_fields
+        .field("xmitdata", xmitdata)
+        .field("xmitwait", xmitwait)
+        .timestamp(timestamp)
+        .post_http(server);
+}
+
 void SendDataToInflux_v2(
     std::string hostname, int xmitdata, int xmitwait, std::string db_addr){
     int influxport = 8086;
@@ -490,7 +682,7 @@ void SendDataToInflux_v2(
     }
 
     // DEBUG 
-    /*
+   /* 
     std::cout << "---- INFLUX DATA ----" << std::endl;
     for (size_t i = 0; i < fields.size(); ++i){
         std::cout
@@ -500,8 +692,8 @@ void SendDataToInflux_v2(
             << " = "
             << values[i]
             << std::endl;
-    }
-    */
+    }*/
+    
 
     // Timestamp
     auto currtime = std::chrono::high_resolution_clock::now();
@@ -586,12 +778,12 @@ void SendDataToInflux_v2(
 
     std::string resp;
     std::string query(
-        "from(bucket: \\\"" + bucket + "\\\")"
+        "from(bucket: \"" + bucket + "\")"
         "|> range(start: -1h)"
-        "|>filter(fn: (r)=>r[\\\"_measurement\\\"] == \\\""
+        "|>filter(fn: (r)=>r[\"_measurement\"] == \""
         + hostname +
-        "\\\")"
-        "|>filter(fn: (r) => r[\\\"_field\\\"] == \\\"xmitwait\\\")"
+        "\")"
+        "|>filter(fn: (r) => r[\"_field\"] == \"xmitwait\")"
     );
 
     influxdb_cpp::flux_query(
